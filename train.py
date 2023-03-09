@@ -9,6 +9,7 @@ import torch.nn.functional as F
 def train_net(args, 
              model,
              train_loader,
+             epoch,
              optimizer, 
              criterion_train):
     """Training: the proportion loss with confidential interval"""
@@ -43,5 +44,7 @@ def train_net(args,
     train_loss = np.array(losses).mean()
     gt, pred = np.array(gt), np.array(pred)
     train_acc = (gt == pred).mean()
+
+    logging.info(f'[Epoch: {epoch+1}/{args.epochs}] train loss: {np.round(train_loss, 4)}, acc: {np.round(train_acc, 4)}')
 
     return train_loss, train_acc    

@@ -50,15 +50,15 @@ def net(args,
 
     best_val_loss = float('inf')
     cnt = 0
-    # Trainning
     for epoch in range(args.epochs):
+        # Trainning
         train_loss, train_acc = train_net(args,
                                           model,
                                           train_loader,
+                                          epoch,
                                           optimizer,
                                           criterion_train
                                           )
-        logging.info(f'[Epoch: {epoch+1}/{args.epochs}] train loss: {np.round(train_loss, 4)}, acc: {np.round(train_acc, 4)}')
 
         # Validation 
         val_loss, val_acc = eval_net(args, 
@@ -67,6 +67,7 @@ def net(args,
                                      val_loader,
                                      criterion_val)
 
+        # Early Stopping 
         if best_val_loss > val_loss:
             best_val_loss = val_loss
             cnt = 0
