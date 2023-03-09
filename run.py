@@ -13,24 +13,27 @@ from hydra.utils import to_absolute_path as abs_path
 from utils import *
 from losses import *
 
+from train import train_net
 from val import eval_net
 from test import test_net
 
 
-def train_net(args,
-              model
-              ):
+def net(args,
+        model
+        ):
 
     fix_seed(args.seed)
-
+   
+    # Generating dataloader
     train_loader, val_loader, test_loader = load_data_bags(args)
 
-    criterion_train = ProportionLoss_CI()
+    criterion_train = ProportionLoss_CI()  # Proportion loss with confidence interval
     criterion_val = ProportionLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     
-    logging.info(f'''Starting training:
+    logging.info(f'''Start training:
         Epochs:                {args.epochs}
+        Patience:              {args.patience}
         Mini Batch size:       {args.mini_batch}
         Learning rate:         {args.lr}
         Dataset:               {args.dataset}
@@ -39,54 +42,25 @@ def train_net(args,
         Training size:         {len(train_loader)}
         Validation size:       {len(val_loader)}
         Test size:             {len(test_loader)}
-        Checkpoints:           {args.output_path + args.fold}
+        Checkpoints:           {args.output_path + str(args.fold)}
         Device:                {args.device}
         Optimizer              {optimizer.__class__.__name__}
         Confidence Interval:   {args.confidence_interval}
     ''')
 
-    train_loss, val_loss = [], []
-    train_acc, val_acc, test_acc = [], [], []
     best_val_loss = float('inf')
     cnt = 0
-    ############ Trainning ############
+    # Trainning
     for epoch in range(args.epochs):
-
-        model.train()
-        losses = []
-        gt, pred = [], []
-        for iteration, (data, label, lp, min_point, max_point) in enumerate(tqdm(train_loader, leave=False)):
-            (b, n, c, w, h) = data.size()
-            data = data.reshape(-1, c, w, h)
-            label = label.reshape(-1)
-            data, lp = data.to(args.device), lp.to(args.device)
-
-            y = model(data)
-
-            gt.extend(label.cpu().detach().numpy())
-            pred.extend(y.argmax(1).cpu().detach().numpy())
-
-            confidence = F.softmax(y, dim=1)
-            confidence = confidence.reshape(b, n, -1)
-            pred_prop = confidence.mean(dim=1)
-
-            loss = criterion_train(pred_prop, 
-                                   lp, 
-                                   min_point.to(args.device), 
-                                   max_point.to(args.device)
-                                   )
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
-            losses.append(loss.item())
-
-        train_loss = np.array(losses).mean()
-        gt, pred = np.array(gt), np.array(pred)
-        train_acc = (gt == pred).mean()
-
+        train_loss, train_acc = train_net(args,
+                                          model,
+                                          train_loader,
+                                          optimizer,
+                                          criterion_train
+                                          )
         logging.info(f'[Epoch: {epoch+1}/{args.epochs}] train loss: {np.round(train_loss, 4)}, acc: {np.round(train_acc, 4)}')
 
-        ############ Validation ############
+        # Validation 
         val_loss, val_acc = eval_net(args, 
                                      epoch, 
                                      model, 
@@ -97,7 +71,7 @@ def train_net(args,
             best_val_loss = val_loss
             cnt = 0
             best_epoch = epoch
-            best_path = args.output_path +  args.fold + f'/CP_epoch{best_epoch + 1}.pkl'
+            best_path = args.output_path +  str(args.fold) + f'/CP_epoch{best_epoch + 1}.pkl'
             torch.save(model.state_dict(), 
                        best_path)
         else:
@@ -105,12 +79,13 @@ def train_net(args,
             if args.patience == cnt:
                 break
     
-    ############ Test ############
+    # Load Best Parameters 
     model.load_state_dict(
         torch.load(best_path, map_location=args.device)
     )
     logging.info(f'Model loaded from {best_path}')
-    
+
+    # Test 
     test_acc, test_cm = test_net(args, 
                                  epoch, 
                                  model, 
@@ -147,8 +122,8 @@ def main(args):
         os.makedirs(args.output_path + str(args.fold)) if os.path.exists(args.output_path + str(args.fold)) is False else None
 
         try:
-            train_net(args, 
-                    model)
+            net(args, 
+                model)
         except KeyboardInterrupt:
             torch.save(model.state_dict(), abs_path('INTERRUPTED.pth'))
             logging.info('Saved interrupt')
