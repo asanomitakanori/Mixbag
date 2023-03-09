@@ -122,6 +122,7 @@ class Dataset_Val(torch.utils.data.Dataset):
 
         return data, label, lp
 
+
 class Dataset_Test(torch.utils.data.Dataset):
     def __init__(self, data, label):
         self.data = data
@@ -152,7 +153,7 @@ class Dataset_Test(torch.utils.data.Dataset):
 class Dataset_Mixbag(torch.utils.data.Dataset):
     def __init__(self, args, data, label, lp):
         fix_seed(args.seed)
-        self.confidence_interval = args.confidence_interval
+        self.CI = args.confidence_interval
         self.data = data
         self.label = label
         self.lp = lp
@@ -173,31 +174,24 @@ class Dataset_Mixbag(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         n = np.random.rand()
         if n >= 0.5:
-            choice_bags_num = np.random.randint(0, self.len)
-            choice_bags, choice_labels, choice_lp = self.data[choice_bags_num], self.label[choice_bags_num], self.lp[choice_bags_num]
+            choice_bags_index = np.random.randint(0, self.len)
+            choice_bags, choice_labels, choice_lp = self.data[choice_bags_index], self.label[choice_bags_index], self.lp[choice_bags_index]
             data, label, lp = self.data[idx], self.label[idx], self.lp[idx]
-            index_order1 =np.arange(data.shape[0])
+            index_order1, index_order2 = np.arange(data.shape[0]), np.arange(data.shape[0])
             random.shuffle(index_order1)
-            index_order2 =np.arange(data.shape[0])
             random.shuffle(index_order2)
 
             if self.choice == 'half':
                 index_order1 = index_order1[0:index_order1.shape[0] // 2]
                 index_order2 = index_order2[0:index_order2.shape[0] // 2]
-                min_error, max_error = error_cover_area(lp, choice_lp, len(index_order1), len(index_order2), self.confidence_interval)
-                a: float = len(index_order1) / (len(index_order1) + len(index_order2))
-                b: float =  len(index_order2) / (len(index_order1) + len(index_order2))
-                lp: float = a*lp + b*choice_lp
+                min_error, max_error, lp = error_cover_area(lp, choice_lp, len(index_order1), len(index_order2), self.CI)
                 lp = torch.tensor(lp).float()
 
             elif self.choice == 'uniform':
                 x = np.random.randint(1, data.shape[0])
                 index_order1 = index_order1[0:x]
                 index_order2 = index_order2[x:]
-                min_error, max_error = error_cover_area(lp, choice_lp, len(index_order1), len(index_order2), self.confidence_interval)
-                a: float = len(index_order1) / (len(index_order1) + len(index_order2))
-                b: float =  len(index_order2) / (len(index_order1) + len(index_order2))
-                lp: float = a*lp + b*choice_lp
+                min_error, max_error, lp = error_cover_area(lp, choice_lp, len(index_order1), len(index_order2), self.CI)
                 lp = torch.tensor(lp).float()
 
             elif self.choice == 'gauss':
@@ -209,16 +203,11 @@ class Dataset_Mixbag(torch.utils.data.Dataset):
                     x = data.shape[-1]
                 index_order1 = index_order1[0:x]
                 index_order2 = index_order2[x:]
-                min_error, max_error = error_cover_area(lp, choice_lp, len(index_order1), len(index_order2), self.confidence_interval)
-                a: float = len(index_order1) / (len(index_order1) + len(index_order2))
-                b: float =  len(index_order2) / (len(index_order1) + len(index_order2))
-                lp: float = a*lp + b*choice_lp
+                min_error, max_error, lp = error_cover_area(lp, choice_lp, len(index_order1), len(index_order2), self.CI)
                 lp = torch.tensor(lp).float()
 
-            data = data[index_order1]
-            label = label[index_order1]
-            choice_bags = choice_bags[index_order2]
-            choice_labels = choice_labels[index_order2]
+            data, label = data[index_order1], label[index_order1]
+            choice_bags, choice_labels = choice_bags[index_order2], choice_labels[index_order2]
             data = np.concatenate([data, choice_bags], axis=0)
             label = np.concatenate([label, choice_labels])
             label = torch.tensor(label).long()
@@ -275,13 +264,11 @@ def error_cover_area(
     t = norm.isf(q = confidence_interval)
     cover1 = t * np.sqrt(proportion1 * (1 - proportion1) / sampling_num1)
     cover2 = t * np.sqrt(proportion2 * (1 - proportion2) / sampling_num2)
-    max1 = proportion1 + t * np.sqrt((proportion1 * (1 - proportion1)) / sampling_num1)
-    max2 = proportion2 + t * np.sqrt((proportion2 * (1 - proportion2)) / sampling_num2)
-    plp_of_merging =  a * proportion1 +  b * proportion2
+    expected_plp =  a * proportion1 +  b * proportion2
     confidence_area = t * cover1 + b * cover2
-    min = plp_of_merging - confidence_area
-    max = plp_of_merging + confidence_area
-    return min, max
+    min = expected_plp - confidence_area
+    max = expected_plp + confidence_area
+    return min, max, expected_plp
 
 
 if __name__ == '__main__':
