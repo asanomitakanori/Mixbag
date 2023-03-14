@@ -10,8 +10,8 @@ import torch.nn as nn
 from torchvision.models import resnet18
 
 from hydra.utils import to_absolute_path as abs_path 
-from utils import *
-from losses import *
+from utils.utils import *
+from utils.losses import *
 
 from train import train_net
 from val import eval_net
@@ -92,8 +92,6 @@ def net(args,
                                  model, 
                                  test_loader)
 
-    logging.info('[Epoch: %d/%d] test acc: %.4f' %(epoch+1, args.epochs, test_acc))
-    logging.info('===============================')
     save_confusion_matrix(cm=test_cm, 
                           path=args.output_path  + '/Confusion_matrix.png',
                           title='test: acc: %.4f' % test_acc)
@@ -118,6 +116,7 @@ def main(args):
                  f'\t{args.classes} output channels\n'
                  )
     args.output_path = args.output_path + args.dataset  
+    
     for fold in range(5):
         args.fold = fold
         os.makedirs(args.output_path + str(args.fold)) if os.path.exists(args.output_path + str(args.fold)) is False else None

@@ -7,12 +7,25 @@ import torch.nn.functional as F
 
 
 def train_net(args, 
-             model,
-             train_loader,
-             epoch,
-             optimizer, 
-             criterion_train):
-    """Training: the proportion loss with confidential interval"""
+              model,
+              train_loader,
+              epoch,
+              optimizer, 
+              criterion_train):
+    '''Training: the proportion loss with confidential interval
+        Args:
+            args (argparse): contain parameters
+            train_loader (torch.utils.data): train dataloader
+            model (torch.tensor): ResNet18 
+            epoch (int): current epoch
+            optimizer (torch.optim): optimizer such as Adam
+            criterion_train: loss function for training
+            
+        Returns:
+            train_loss (float): average of train loss
+            train_acc (float): train accuracy
+    '''
+    
     model.train()
     losses = []
     gt, pred = [], []
