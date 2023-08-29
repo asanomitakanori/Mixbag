@@ -6,11 +6,7 @@ import torch
 import torch.nn.functional as F
 
 
-def eval_net(args, 
-             epoch,
-             model,
-             val_loader, 
-             loss_function_val):
+def eval_net(args, epoch, model, val_loader, loss_function_val):
     """Evaluation without the densecrf with the proportion loss"""
 
     model.eval()
@@ -40,8 +36,9 @@ def eval_net(args,
     gt, pred = np.array(gt), np.array(pred)
     val_acc = (gt == pred).mean()
 
-    logging.info('[Epoch: %d/%d] val loss: %.4f, acc: %.4f' %
-                    (epoch+1, args.epochs,
-                    val_loss, val_acc))
+    logging.info(
+        "[Epoch: %d/%d] val loss: %.4f, acc: %.4f"
+        % (epoch + 1, args.epochs, val_loss, val_acc)
+    )
 
     return val_loss, val_acc
