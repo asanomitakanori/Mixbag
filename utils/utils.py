@@ -129,24 +129,21 @@ class Dataset_Val(Dataset_Base):
         self.lp = lp
 
     def __getitem__(self, idx):
-        data = self.data[idx]
+        data, label, lp = self.data[idx], self.label[idx], self.lp[idx]
         if len(data.shape) == 3:
             data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
         # bs: bag size, w: width, h: height, c: channel
         (bs, w, h, c) = data.shape
-        # normalization
         trans_data = torch.zeros((bs, c, w, h))
         for i in range(bs):
             trans_data[i] = self.transform(data[i])
         data = trans_data
 
-        label = self.label[idx]
-        label = torch.tensor(label).long()
-
-        lp = self.lp[idx]
-        lp = torch.tensor(lp).float()
-
-        return {"img": data, "label": label, "label_prop": lp}
+        return {
+            "img": data,
+            "label": torch.tensor(label).long(),
+            "label_prop": torch.tensor(lp).float(),
+        }
 
 
 class Dataset_Test(Dataset_Base):
@@ -157,14 +154,12 @@ class Dataset_Test(Dataset_Base):
         return self.len
 
     def __getitem__(self, idx):
-        img = self.data[idx]
+        img, label = self.data[idx], self.label[idx]
         if len(img.shape) != 3:
             img = img.reshape(img.shape[0], img.shape[1], 1)
-
         img = self.transform(img)
-        label = self.label[idx]
-        label = torch.tensor(label).long()
-        return {"img": img, "label": label}
+
+        return {"img": img, "label": torch.tensor(label).long()}
 
 
 class Dataset_Mixbag(Dataset_Base):
@@ -176,88 +171,94 @@ class Dataset_Mixbag(Dataset_Base):
         self.choice = args.choice
         self.CI = args.confidence_interval
 
+    def sampling(self, index_i: list, index_j: list, lp_i: float, lp_j: float):
+        """Sampling methods
+        Args:
+            index_i (list):
+            index_j (list):
+            sampled_lp (float)
+        Returns:
+            expected_lp (float):
+            index_i (list):
+            index_j (list):
+            min_error (float):
+            max_error (float):
+        """
+        if self.choice == "half":
+            index_i, index_j = (
+                index_i[0 : index_i.shape[0] // 2],
+                index_j[0 : index_j.shape[0] // 2],
+            )
+
+        elif self.choice == "uniform":
+            sep = np.random.randint(1, self.data[0].shape[0])
+            index_i, index_j = index_i[0:sep], index_j[sep:]
+
+        elif self.choice == "gauss":
+            sep = np.random.normal(loc=0.5, scale=0.1, size=1)
+            sep = int(sep * self.data[0].shape[0])
+            if x == 0:
+                x = 1
+            elif x >= self.data[0].shape[0]:
+                x = self.data[0].shape[0]
+            index_i, index_j = index_i[0:x], index_j[x:]
+
+        min_error, max_error, expected_lp = error_cover_area(
+            lp_i, lp_j, len(index_i), len(index_j), self.CI
+        )
+
+        return expected_lp, index_i, index_j, min_error, max_error
+
     def __getitem__(self, idx):
-        n = np.random.rand()
-        if n >= 0.5:
-            choice_bags_index = np.random.randint(0, self.len)
-            choice_bags, choice_labels, choice_lp = (
-                self.data[choice_bags_index],
-                self.label[choice_bags_index],
-                self.lp[choice_bags_index],
+        data_i, label_i, lp_i = self.data[idx], self.label[idx], self.lp[idx]
+        MixBag = random.choice([True, False])
+        if MixBag:
+            index = np.random.randint(0, self.len)
+            data_j, labels_j, lp_j = (
+                self.data[index],
+                self.label[index],
+                self.lp[index],
             )
-            data, label, lp = self.data[idx], self.label[idx], self.lp[idx]
-            index_order1, index_order2 = np.arange(data.shape[0]), np.arange(
-                data.shape[0]
-            )
-            random.shuffle(index_order1)
-            random.shuffle(index_order2)
 
-            if self.choice == "half":
-                index_order1 = index_order1[0 : index_order1.shape[0] // 2]
-                index_order2 = index_order2[0 : index_order2.shape[0] // 2]
-                min_error, max_error, lp = error_cover_area(
-                    lp, choice_lp, len(index_order1), len(index_order2), self.CI
+            index_i, index_j = np.arange(data_i.shape[0]), np.arange(data_i.shape[0])
+            random.shuffle(index_i)
+            random.shuffle(index_j)
+
+            expected_lp, index_i, index_j, ci_min, ci_max = self.sampling(
+                index_i, index_j, lp_i, lp_j
+            )
+
+            subbag_i, subbag_labels_i = data_i[index_i], label_i[index_i]
+            subbag_j, subbag_labels_j = (
+                data_j[index_j],
+                labels_j[index_j],
+            )
+            mixed_bag = np.concatenate([subbag_i, subbag_j], axis=0)
+            mixed_label = np.concatenate([subbag_labels_i, subbag_labels_j])
+
+            if len(mixed_bag.shape) == 3:
+                mixed_bag = mixed_bag.reshape(
+                    mixed_bag.shape[0], mixed_bag.shape[1], mixed_bag.shape[2], 1
                 )
-                lp = torch.tensor(lp).float()
 
-            elif self.choice == "uniform":
-                x = np.random.randint(1, data.shape[0])
-                index_order1 = index_order1[0:x]
-                index_order2 = index_order2[x:]
-                min_error, max_error, lp = error_cover_area(
-                    lp, choice_lp, len(index_order1), len(index_order2), self.CI
-                )
-                lp = torch.tensor(lp).float()
-
-            elif self.choice == "gauss":
-                x = np.random.normal(loc=0.5, scale=0.1, size=1)
-                x = int(x * data.shape[0])
-                if x == 0:
-                    x = 1
-                elif x >= data.shape[0]:
-                    x = data.shape[-1]
-                index_order1 = index_order1[0:x]
-                index_order2 = index_order2[x:]
-                min_error, max_error, lp = error_cover_area(
-                    lp, choice_lp, len(index_order1), len(index_order2), self.CI
-                )
-                lp = torch.tensor(lp).float()
-
-            data, label = data[index_order1], label[index_order1]
-            choice_bags, choice_labels = (
-                choice_bags[index_order2],
-                choice_labels[index_order2],
-            )
-            data = np.concatenate([data, choice_bags], axis=0)
-            label = np.concatenate([label, choice_labels])
-            label = torch.tensor(label).long()
-            min_error, max_error = (
-                torch.tensor(min_error).float(),
-                torch.tensor(max_error).float(),
-            )
-
-            if len(data.shape) == 3:
-                data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
             # bs: bag size, w: width, h: height, c: channel
-            (bs, w, h, c) = data.shape
+            (bs, w, h, c) = mixed_bag.shape
             # normalization
-            trans_data = torch.zeros(bs, c, w, h)
+            empty_data = torch.zeros(bs, c, w, h)
             for i in range(bs):
-                trans_data[i] = self.transform(data[i])
-            data = trans_data
+                empty_data[i] = self.transform(mixed_bag[i])
+            mixed_bag = empty_data
 
             return {
-                "img": data,  # img: [10, 3, 32, 32]
-                "label": label,  # label: [10]
-                "label_prop": lp,  # label_prop: [10]
-                "ci_min_value": min_error,  # ci_min_value: [10]
-                "ci_max_value": max_error,  # ci_max_value: [10]
+                "img": mixed_bag,  # img: [10, 3, 32, 32]
+                "label": torch.tensor(mixed_label).long(),  # label: [10]
+                "label_prop": torch.tensor(expected_lp).float(),  # label_prop: [10]
+                "ci_min_value": torch.tensor(ci_min).float(),  # ci_min_value: [10]
+                "ci_max_value": torch.tensor(ci_max).float(),  # ci_max_value: [10]
             }
 
         else:
-            min_error = 0
-            max_error = 0
-            data = self.data[idx]
+            data, label, lp = self.data[idx], self.label[idx], self.lp[idx]
             if len(data.shape) == 3:
                 data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
 
@@ -267,21 +268,17 @@ class Dataset_Mixbag(Dataset_Base):
                 trans_data[i] = self.transform(data[i])
             data = trans_data
 
-            label = self.label[idx]
-            label = torch.tensor(label).long()
-            min_error, max_error = (
+            ci_min, ci_max = (
                 torch.full((1, self.classes), -1).reshape(self.classes).float(),
                 torch.full((1, self.classes), -1).reshape(self.classes).float(),
             )
-            lp = self.lp[idx]
-            lp = torch.tensor(lp).float()
 
             return {
                 "img": data,  # img: [10, 3, 32, 32]
-                "label": label,  # label: [10]
-                "label_prop": lp,  # label_prop: [10]
-                "ci_min_value": min_error,  # ci_min_value: [10]
-                "ci_max_value": max_error,  # ci_max_value: [10]
+                "label": torch.tensor(label).long(),  # label: [10]
+                "label_prop": torch.tensor(lp).float(),  # label_prop: [10]
+                "ci_min_value": ci_min,  # ci_min_value: [10]
+                "ci_max_value": ci_max,  # ci_max_value: [10]
             }
 
 

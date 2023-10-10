@@ -44,8 +44,8 @@ def main(args):
     # 5 fold cross validation
     for fold in range(5):
         args.fold = fold
-        os.makedirs(args.output_path + str(args.fold)) if os.path.exists(
-            args.output_path + str(args.fold)
+        os.makedirs(args.output_path + "/" + str(args.fold)) if os.path.exists(
+            args.output_path + "/" + str(args.fold)
         ) is False else None
 
         try:
