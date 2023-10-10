@@ -48,21 +48,14 @@ class Run(object):
         """
         self.model.train()
         losses = []
-        if self.train_check == True:
-            gt, pred = [], []
 
         for batch in tqdm(self.train_loader, leave=False):
             # nb: the number of bags, bs: bag size, c: channel, w: width, h: height
             (nb, bs, c, w, h) = batch["img"].size()
             img = batch["img"].reshape(-1, c, w, h).to(args.device)
-            label = batch["label"].reshape(-1)
             lp_gt = batch["label_prop"].to(args.device)
 
             output = self.model(img)
-
-            if self.train_check == True:
-                gt.extend(label.cpu().detach().numpy())
-                pred.extend(output.argmax(1).cpu().detach().numpy())
 
             output = F.softmax(output, dim=1)
             output = output.reshape(nb, bs, -1)
@@ -81,15 +74,9 @@ class Run(object):
             losses.append(loss.item())
 
         train_loss = np.array(losses).mean()
-        if self.train_check == True:
-            gt, pred = np.array(gt), np.array(pred)
-            train_acc = (gt == pred).mean()
-        else:
-            train_acc = 0
 
         logging.info(
-            "[Epoch: %d/%d] train loss: %.4f, acc: %.4f"
-            % (epoch + 1, args.epochs, train_loss, train_acc)
+            "[Epoch: %d/%d] train loss: %.4f" % (epoch + 1, args.epochs, train_loss)
         )
 
     def val(self, args, epoch: int):
@@ -103,19 +90,14 @@ class Run(object):
         """
         self.model.eval()
         losses = []
-        gt, pred = [], []
         with torch.no_grad():
             for batch in tqdm(self.val_loader, leave=False):
                 # nb: the number of bags, bs: bag size, c: channel, w: width, h: height
                 (nb, bs, c, w, h) = batch["img"].size()
                 img = batch["img"].reshape(-1, c, w, h)
-                label = batch["label"].reshape(-1)
                 img, lp_gt = img.to(args.device), batch["label_prop"].to(args.device)
 
                 output = self.model(img)
-
-                gt.extend(label.cpu().detach().numpy())
-                pred.extend(output.argmax(1).cpu().detach().numpy())
 
                 output = F.softmax(output, dim=1)
                 output = output.reshape(nb, bs, -1)
@@ -125,12 +107,9 @@ class Run(object):
                 losses.append(loss.item())
 
         self.val_loss = np.array(losses).mean()
-        gt, pred = np.array(gt), np.array(pred)
-        val_acc = (gt == pred).mean()
 
         logging.info(
-            "[Epoch: %d/%d] val loss: %.4f, acc: %.4f"
-            % (epoch + 1, args.epochs, self.val_loss, val_acc)
+            "[Epoch: %d/%d] val loss: %.4f" % (epoch + 1, args.epochs, self.val_loss)
         )
 
     def early_stopping(self, args, epoch: int):

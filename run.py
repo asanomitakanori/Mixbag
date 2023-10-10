@@ -13,8 +13,6 @@ from hydra.utils import to_absolute_path as abs_path
 from utils.utils import *
 from utils.losses import *
 
-from dust.test import test_net
-
 from train import Run
 
 
