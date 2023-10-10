@@ -75,7 +75,6 @@ def load_data_bags(args):  # Toy
         num_workers=args.num_workers,
     )
     val_dataset = Dataset_Val(
-        args=args,
         data=val_bags,
         label=val_labels,
         lp=val_lps,
@@ -97,42 +96,48 @@ def load_data_bags(args):  # Toy
     return train_loader, val_loader, test_loader
 
 
-class Dataset_Val(torch.utils.data.Dataset):
-    def __init__(self, args, data, label, lp):
-        np.random.seed(args.seed)
+class Dataset_Base(torch.utils.data.Dataset):
+    def __init__(self, data, label):
         self.data = data
         self.label = label
-        self.lp = lp
-
-        self.transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    (0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)
-                ),
-            ]
-        )
-        self.transform2 = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5071), (0.2673))]
-        )
         self.len = len(self.data)
+        if len(self.data[0].shape) == 4:
+            self.transform = transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)
+                    ),
+                ]
+            )
+        else:
+            self.transform = transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.5071), (0.2673))]
+            )
 
     def __len__(self):
         return self.len
 
     def __getitem__(self, idx):
+        """Overload this function in your Dataset."""
+        raise NotImplementedError
+
+
+class Dataset_Val(Dataset_Base):
+    def __init__(self, data, label, lp):
+        super().__init__(data, label)
+        self.lp = lp
+
+    def __getitem__(self, idx):
         data = self.data[idx]
         if len(data.shape) == 3:
             data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
-            (b, w, h, c) = data.shape
-            trans_data = torch.zeros((b, c, w, h))
-            for i in range(b):
-                trans_data[i] = self.transform2(data[i])
-        else:
-            (b, w, h, c) = data.shape
-            trans_data = torch.zeros((b, c, w, h))
-            for i in range(b):
-                trans_data[i] = self.transform(data[i])
+        # bs: bag size, w: width, h: height, c: channel
+        (bs, w, h, c) = data.shape
+        # normalization
+        trans_data = torch.zeros((bs, c, w, h))
+        for i in range(bs):
+            trans_data[i] = self.transform(data[i])
         data = trans_data
 
         label = self.label[idx]
@@ -144,22 +149,9 @@ class Dataset_Val(torch.utils.data.Dataset):
         return {"img": data, "label": label, "label_prop": lp}
 
 
-class Dataset_Test(torch.utils.data.Dataset):
+class Dataset_Test(Dataset_Base):
     def __init__(self, data, label):
-        self.data = data
-        self.label = label
-        self.transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    (0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)
-                ),
-            ]
-        )
-        self.transform2 = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5071), (0.2673))]
-        )
-        self.len = self.data.shape[0]
+        super().__init__(data, label)
 
     def __len__(self):
         return self.len
@@ -168,39 +160,21 @@ class Dataset_Test(torch.utils.data.Dataset):
         img = self.data[idx]
         if len(img.shape) != 3:
             img = img.reshape(img.shape[0], img.shape[1], 1)
-            img = self.transform2(img)
-        else:
-            img = self.transform(img)
+
+        img = self.transform(img)
         label = self.label[idx]
         label = torch.tensor(label).long()
         return {"img": img, "label": label}
 
 
-class Dataset_Mixbag(torch.utils.data.Dataset):
+class Dataset_Mixbag(Dataset_Base):
     def __init__(self, args, data, label, lp):
+        super().__init__(data, label)
         fix_seed(args.seed)
-        self.CI = args.confidence_interval
-        self.data = data
-        self.label = label
         self.lp = lp
         self.classes = args.classes
-
-        self.transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    (0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)
-                ),
-            ]
-        )
-        self.transform2 = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5071), (0.2673))]
-        )
-        self.len = len(self.data)
         self.choice = args.choice
-
-    def __len__(self):
-        return self.len
+        self.CI = args.confidence_interval
 
     def __getitem__(self, idx):
         n = np.random.rand()
@@ -264,23 +238,20 @@ class Dataset_Mixbag(torch.utils.data.Dataset):
 
             if len(data.shape) == 3:
                 data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
-                (b, w, h, c) = data.shape
-                trans_data = torch.zeros((b, c, w, h))
-                for i in range(b):
-                    trans_data[i] = self.transform2(data[i])
-            else:
-                (b, w, h, c) = data.shape
-                trans_data = torch.zeros((b, c, w, h))
-                for i in range(b):
-                    trans_data[i] = self.transform(data[i])
+            # bs: bag size, w: width, h: height, c: channel
+            (bs, w, h, c) = data.shape
+            # normalization
+            trans_data = torch.zeros(bs, c, w, h)
+            for i in range(bs):
+                trans_data[i] = self.transform(data[i])
             data = trans_data
 
             return {
-                "img": data,
-                "label": label,
-                "label_prop": lp,
-                "ci_min_value": min_error,
-                "ci_max_value": max_error,
+                "img": data,  # img: [10, 3, 32, 32]
+                "label": label,  # label: [10]
+                "label_prop": lp,  # label_prop: [10]
+                "ci_min_value": min_error,  # ci_min_value: [10]
+                "ci_max_value": max_error,  # ci_max_value: [10]
             }
 
         else:
@@ -289,15 +260,11 @@ class Dataset_Mixbag(torch.utils.data.Dataset):
             data = self.data[idx]
             if len(data.shape) == 3:
                 data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
-                (b, w, h, c) = data.shape
-                trans_data = torch.zeros((b, c, w, h))
-                for i in range(b):
-                    trans_data[i] = self.transform2(data[i])
-            else:
-                (b, w, h, c) = data.shape
-                trans_data = torch.zeros((b, c, w, h))
-                for i in range(b):
-                    trans_data[i] = self.transform(data[i])
+
+            (b, w, h, c) = data.shape
+            trans_data = torch.zeros((b, c, w, h))
+            for i in range(b):
+                trans_data[i] = self.transform(data[i])
             data = trans_data
 
             label = self.label[idx]
@@ -310,11 +277,11 @@ class Dataset_Mixbag(torch.utils.data.Dataset):
             lp = torch.tensor(lp).float()
 
             return {
-                "img": data,
-                "label": label,
-                "label_prop": lp,
-                "ci_min_value": min_error,
-                "ci_max_value": max_error,
+                "img": data,  # img: [10, 3, 32, 32]
+                "label": label,  # label: [10]
+                "label_prop": lp,  # label_prop: [10]
+                "ci_min_value": min_error,  # ci_min_value: [10]
+                "ci_max_value": max_error,  # ci_max_value: [10]
             }
 
 
@@ -347,11 +314,3 @@ def model_import(args, model_name=None):
         model.fc = nn.Linear(model.fc.in_features, args.classes)
         model = model.to(args.device)
     return model
-
-
-if __name__ == "__main__":
-    proportion = [0.2, 0.7, 0.1]
-    sampling_num = 128
-    confidence_interval = 0.025
-    error = error_cover_area(proportion, sampling_num, confidence_interval)
-    print(error)

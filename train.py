@@ -15,18 +15,25 @@ class Run(object):
 
     def __init__(self, args):
         self.model = model_import(args)
+        logging.info(
+            f"Network:\n"
+            f"\t{args.channels} input channels\n"
+            f"\t{args.classes} output channels\n"
+        )
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
 
         self.train_loader, self.val_loader, self.test_loader = load_data_bags(args)
         # Proportion loss with confidence interval
         self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
-
         self.train_check = True
+
+        # early stopping parameters
         self.val_loss = None
         self.cnt = 0
         self.best_val_loss = float("inf")
         self.break_flag = False
         self.best_path = None
+        self.fold = args.fold
         self.output_path = args.output_path
         self.patience = args.patience
 
@@ -35,6 +42,7 @@ class Run(object):
         Args:
             args (argparse): contain parameters
             epoch (int): current epoch
+
         Returns:
             None
         """
@@ -44,10 +52,11 @@ class Run(object):
             gt, pred = [], []
 
         for batch in tqdm(self.train_loader, leave=False):
-            (b, n, c, w, h) = batch["img"].size()
+            # nb: the number of bags, bs: bag size, c: channel, w: width, h: height
+            (nb, bs, c, w, h) = batch["img"].size()
             img = batch["img"].reshape(-1, c, w, h).to(args.device)
             label = batch["label"].reshape(-1)
-            img, gt_lp = img.to(args.device), batch["label_prop"].to(args.device)
+            lp_gt = batch["label_prop"].to(args.device)
 
             output = self.model(img)
 
@@ -56,12 +65,13 @@ class Run(object):
                 pred.extend(output.argmax(1).cpu().detach().numpy())
 
             output = F.softmax(output, dim=1)
-            output = output.reshape(b, n, -1)
-            pred_lp = output.mean(dim=1)
+            output = output.reshape(nb, bs, -1)
+            lp_pred = output.mean(dim=1)
+            assert len(lp_pred.shape) == 2, "lp_pred.shape should be 2"
 
             loss = self.loss_train(
-                pred_lp,
-                gt_lp,
+                lp_pred,
+                lp_gt,
                 batch["ci_min_value"].to(args.device),
                 batch["ci_max_value"].to(args.device),
             )
@@ -82,7 +92,7 @@ class Run(object):
             % (epoch + 1, args.epochs, train_loss, train_acc)
         )
 
-    def val(self, args, epoch):
+    def val(self, args, epoch: int):
         """Evaluation
         Args:
             args (argparse): contain parameters
@@ -96,7 +106,8 @@ class Run(object):
         gt, pred = [], []
         with torch.no_grad():
             for batch in tqdm(self.val_loader, leave=False):
-                (b, n, c, w, h) = batch["img"].size()
+                # nb: the number of bags, bs: bag size, c: channel, w: width, h: height
+                (nb, bs, c, w, h) = batch["img"].size()
                 img = batch["img"].reshape(-1, c, w, h)
                 label = batch["label"].reshape(-1)
                 img, lp_gt = img.to(args.device), batch["label_prop"].to(args.device)
@@ -107,7 +118,7 @@ class Run(object):
                 pred.extend(output.argmax(1).cpu().detach().numpy())
 
                 output = F.softmax(output, dim=1)
-                output = output.reshape(b, n, -1)
+                output = output.reshape(nb, bs, -1)
                 lp_pred = output.mean(dim=1)
 
                 loss = self.loss_val(lp_pred, lp_gt)
@@ -122,14 +133,14 @@ class Run(object):
             % (epoch + 1, args.epochs, self.val_loss, val_acc)
         )
 
-    def early_stopping(self, args, epoch):
+    def early_stopping(self, args, epoch: int):
         """Early Stopping
         Args:
             args (argparse): contain parameters
             epoch (int): current epoch
 
         Returns:
-            break_flag (True or False): when break_flag is set "True", we stop training. when "False", continue training.
+            break_flag (True or False): when break_flag is "True", stop training. when it is "False", continue training.
         """
         if self.val_loss > self.best_val_loss:
             self.cnt += 1
@@ -138,7 +149,7 @@ class Run(object):
         else:
             self.best_val_loss = self.val_loss
             self.cnt = 0
-            self.best_path = self.output_path + "/" + str(args.fold) + f"/Best_CP.pkl"
+            self.best_path = self.output_path + "/" + str(self.fold) + f"/Best_CP.pkl"
             torch.save(self.model.state_dict(), self.best_path)
         return self.break_flag
 
@@ -147,12 +158,9 @@ class Run(object):
         Args:
             args (argparse): contain parameters
             epoch (int): current epoch
-            model (torch.tensor): ResNet18
-            test_loader (torch.utils.data): test dataloader
 
         Returns:
-            test_acc (float): test accuracy
-            test_cm (matrix): confusion matrix
+            None
         """
 
         # Load Best Parameters
@@ -165,6 +173,8 @@ class Run(object):
         with torch.no_grad():
             for batch in tqdm(self.test_loader, leave=False):
                 img = batch["img"].to(args.device)
+                assert len(img.shape) in [4, 5], "img should be 4 or 5 dims"
+
                 output = self.model(img)
 
                 gt.extend(batch["label"].cpu().detach().numpy())
@@ -172,15 +182,16 @@ class Run(object):
 
         gt, pred = np.array(gt), np.array(pred)
         test_acc = (gt == pred).mean()
-        test_cm = confusion_matrix(y_true=gt, y_pred=pred, normalize="true")
 
         logging.info(
             "[Epoch: %d/%d] test acc: %.4f" % (epoch + 1, args.epochs, test_acc)
         )
         logging.info("===============================")
 
+        # calculate confusion matrix and save confusion matrix
+        test_cm = confusion_matrix(y_true=gt, y_pred=pred, normalize="true")
         save_confusion_matrix(
             cm=test_cm,
-            path=self.output_path + "/" + str(args.fold) + "/Confusion_matrix.png",
+            path=self.output_path + "/" + str(self.fold) + "/Confusion_matrix.png",
             title="test: acc: %.4f" % test_acc,
         )
