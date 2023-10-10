@@ -118,6 +118,15 @@ class Dataset_Base(torch.utils.data.Dataset):
     def __len__(self):
         return self.len
 
+    def transform_data(self, data):
+        if len(data.shape) == 3:
+            data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
+        (bs, w, h, c) = data.shape
+        trans_data = torch.zeros((bs, c, w, h))
+        for i in range(bs):
+            trans_data[i] = self.transform(data[i])
+        return trans_data
+
     def __getitem__(self, idx):
         """Overload this function in your Dataset."""
         raise NotImplementedError
@@ -133,11 +142,7 @@ class Dataset_Val(Dataset_Base):
         if len(data.shape) == 3:
             data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
         # bs: bag size, w: width, h: height, c: channel
-        (bs, w, h, c) = data.shape
-        trans_data = torch.zeros((bs, c, w, h))
-        for i in range(bs):
-            trans_data[i] = self.transform(data[i])
-        data = trans_data
+        data = self.transform_data(data)
 
         return {
             "img": data,
@@ -236,18 +241,8 @@ class Dataset_Mixbag(Dataset_Base):
             mixed_bag = np.concatenate([subbag_i, subbag_j], axis=0)
             mixed_label = np.concatenate([subbag_labels_i, subbag_labels_j])
 
-            if len(mixed_bag.shape) == 3:
-                mixed_bag = mixed_bag.reshape(
-                    mixed_bag.shape[0], mixed_bag.shape[1], mixed_bag.shape[2], 1
-                )
-
             # bs: bag size, w: width, h: height, c: channel
-            (bs, w, h, c) = mixed_bag.shape
-            # normalization
-            empty_data = torch.zeros(bs, c, w, h)
-            for i in range(bs):
-                empty_data[i] = self.transform(mixed_bag[i])
-            mixed_bag = empty_data
+            mixed_bag = self.transform_data(mixed_bag)
 
             return {
                 "img": mixed_bag,  # img: [10, 3, 32, 32]
@@ -259,14 +254,7 @@ class Dataset_Mixbag(Dataset_Base):
 
         else:
             data, label, lp = self.data[idx], self.label[idx], self.lp[idx]
-            if len(data.shape) == 3:
-                data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
-
-            (b, w, h, c) = data.shape
-            trans_data = torch.zeros((b, c, w, h))
-            for i in range(b):
-                trans_data[i] = self.transform(data[i])
-            data = trans_data
+            data = self.transform_data(data)
 
             ci_min, ci_max = (
                 torch.full((1, self.classes), -1).reshape(self.classes).float(),
