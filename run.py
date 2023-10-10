@@ -13,72 +13,25 @@ from hydra.utils import to_absolute_path as abs_path
 from utils.utils import *
 from utils.losses import *
 
-from train import train_net
-from val import eval_net
-from test import test_net
+from dust.test import test_net
+
+from train import Run
 
 
 def net(args, model):
     fix_seed(args.seed)
+    run = Run(args)
 
-    # Generating dataloader
-    train_loader, val_loader, test_loader = load_data_bags(args)
-
-    criterion_train = ProportionLoss_CI()  # Proportion loss with confidence interval
-    criterion_val = ProportionLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
-    logging.info(
-        f"""Start training:
-        Epochs:                {args.epochs}
-        Patience:              {args.patience}
-        Mini Batch size:       {args.mini_batch}
-        Learning rate:         {args.lr}
-        Dataset:               {args.dataset}
-        Bag size:              {args.bag_size}
-        Bag Num:               {args.bags_num}
-        Training size:         {len(train_loader)}
-        Validation size:       {len(val_loader)}
-        Test size:             {len(test_loader)}
-        Checkpoints:           {args.output_path + str(args.fold)}
-        Device:                {args.device}
-        Optimizer              {optimizer.__class__.__name__}
-        Confidence Interval:   {args.confidence_interval}
-    """
-    )
-
-    best_val_loss = float("inf")
-    break_flag = False
-    best_path = False
-    cnt = 0
     for epoch in range(args.epochs):
-        # Trainning
-        train_loss, train_acc = train_net(
-            args, model, train_loader, epoch, optimizer, criterion_train
-        )
+        # Training & Validation
+        run.train(args, epoch)
+        run.val(args, epoch)
 
-        # Validation
-        val_loss, val_acc = eval_net(args, epoch, model, val_loader, criterion_val)
-
-        # Early Stopping
-        best_val_loss, cnt, best_path, break_flag = early_stopping(
-            args, best_val_loss, val_loss, break_flag, cnt, best_path, epoch, model
-        )
+        break_flag = run.early_stopping(args, epoch)
         if break_flag:
             break
-
-    # Load Best Parameters
-    model.load_state_dict(torch.load(best_path, map_location=args.device))
-    logging.info(f"Model loaded from {best_path}")
-
     # Test
-    test_acc, test_cm = test_net(args, epoch, model, test_loader)
-
-    save_confusion_matrix(
-        cm=test_cm,
-        path=args.output_path + "/Confusion_matrix.png",
-        title="test: acc: %.4f" % test_acc,
-    )
+    run.test(args, epoch)
 
 
 def main(args):
