@@ -1,31 +1,17 @@
 import os
-import torch
-import torchvision.transforms as transforms
-import torch.nn as nn
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import random
-import torch.nn.functional as F
+import seaborn as sns
+
+import numpy as np
 from scipy.stats import norm
 from hydra.utils import to_absolute_path as to_abs_path
+import matplotlib.pyplot as plt
 
-
-# early stopping
-def early_stopping(
-    args, best_val_loss, valloss, break_flag, cnt, best_path, epoch, model
-):
-    if valloss > best_val_loss:
-        cnt += 1
-        if args.patience == cnt:
-            break_flag = True
-    else:
-        best_val_loss = valloss
-        cnt = 0
-        best_epoch = epoch
-        best_path = args.output_path + str(args.fold) + f"/CP_epoch{best_epoch + 1}.pkl"
-        torch.save(model.state_dict(), best_path)
-    return best_val_loss, cnt, best_path, break_flag
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
+import torch.nn.functional as F
+from torchvision.models import resnet18
 
 
 def fix_seed(seed):
@@ -155,7 +141,7 @@ class Dataset_Val(torch.utils.data.Dataset):
         lp = self.lp[idx]
         lp = torch.tensor(lp).float()
 
-        return data, label, lp
+        return {"img": data, "label": label, "label_prop": lp}
 
 
 class Dataset_Test(torch.utils.data.Dataset):
@@ -179,15 +165,15 @@ class Dataset_Test(torch.utils.data.Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        data = self.data[idx]
-        if len(data.shape) != 3:
-            data = data.reshape(data.shape[0], data.shape[1], 1)
-            data = self.transform2(data)
+        img = self.data[idx]
+        if len(img.shape) != 3:
+            img = img.reshape(img.shape[0], img.shape[1], 1)
+            img = self.transform2(img)
         else:
-            data = self.transform(data)
+            img = self.transform(img)
         label = self.label[idx]
         label = torch.tensor(label).long()
-        return data, label
+        return {"img": img, "label": label}
 
 
 class Dataset_Mixbag(torch.utils.data.Dataset):
@@ -288,7 +274,14 @@ class Dataset_Mixbag(torch.utils.data.Dataset):
                 for i in range(b):
                     trans_data[i] = self.transform(data[i])
             data = trans_data
-            return data, label, lp, min_error, max_error
+
+            return {
+                "img": data,
+                "label": label,
+                "label_prop": lp,
+                "ci_min_value": min_error,
+                "ci_max_value": max_error,
+            }
 
         else:
             min_error = 0
@@ -315,7 +308,14 @@ class Dataset_Mixbag(torch.utils.data.Dataset):
             )
             lp = self.lp[idx]
             lp = torch.tensor(lp).float()
-            return data, label, lp, min_error, max_error
+
+            return {
+                "img": data,
+                "label": label,
+                "label_prop": lp,
+                "ci_min_value": min_error,
+                "ci_max_value": max_error,
+            }
 
 
 def error_cover_area(
@@ -335,6 +335,18 @@ def error_cover_area(
     min = expected_plp - confidence_area
     max = expected_plp + confidence_area
     return min, max, expected_plp
+
+
+def model_import(args, model_name=None):
+    model = resnet18(pretrained=args.pretrained)
+    if model:
+        if args.channels != 3:
+            model.conv1 = nn.Conv2d(
+                args.channels, 64, kernel_size=7, stride=2, padding=3, bias=False
+            )
+        model.fc = nn.Linear(model.fc.in_features, args.classes)
+        model = model.to(args.device)
+    return model
 
 
 if __name__ == "__main__":
