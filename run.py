@@ -1,7 +1,7 @@
 import os
 import sys
 import logging
-import argument
+import arguments
 
 import torch
 
@@ -53,5 +53,5 @@ def main(args):
 
 
 if __name__ == "__main__":
-    args = argument.ARGS
+    args = arguments.ARGS
     main(args)
