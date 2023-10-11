@@ -166,7 +166,7 @@ class Run(object):
         test_acc = (gt == pred).mean()
 
         logging.info(
-            "[Epoch: %d/%d] test acc: %.4f" % (epoch + 1, args.epochs, test_acc)
+            f"[Epoch: {epoch + 1}/{args.epochs}] test acc: {np.round(test_acc, 4)}"
         )
         logging.info("===============================")
 

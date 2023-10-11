@@ -28,6 +28,15 @@ def worker_init_fn(seed):
 
 
 def save_confusion_matrix(cm, path, title=""):
+    """
+    Args:
+        cm (marix):confusion matrix
+        path (str): output_path
+        title (str): the title of output image
+
+    Returns:
+        None
+    """
     sns.heatmap(cm, annot=True, cmap="Blues_r", fmt=".4f")
     plt.xlabel("pred")
     plt.ylabel("GT")
@@ -36,7 +45,7 @@ def save_confusion_matrix(cm, path, title=""):
     plt.close()
 
 
-def error_cover_area(
+def ci_loss_interval(
     proportion1: list,
     proportion2: list,
     sampling_num1: int,

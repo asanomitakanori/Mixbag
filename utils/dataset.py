@@ -5,7 +5,7 @@ import torch
 import torchvision.transforms as transforms
 from hydra.utils import to_absolute_path as to_abs_path
 
-from utils.utils import fix_seed, error_cover_area, worker_init_fn
+from utils.utils import fix_seed, ci_loss_interval, worker_init_fn
 
 
 def load_data(args, stage: str):
@@ -154,7 +154,7 @@ class Dataset_Mixbag(Dataset_Base):
         self.choice = args.choice
         self.CI = args.confidence_interval
 
-    def sampling(self, index_i: list, index_j: list, lp_i: float, lp_j: float):
+    def sampling(self, index: list, lp_i: float, lp_j: float):
         """Sampling methods
         Args:
             index_i (list):
@@ -169,53 +169,55 @@ class Dataset_Mixbag(Dataset_Base):
         """
         if self.choice == "half":
             index_i, index_j = (
-                index_i[0 : index_i.shape[0] // 2],
-                index_j[0 : index_j.shape[0] // 2],
+                random.sample(index, len(index) // 2),
+                random.sample(index, len(index) // 2),
             )
 
         elif self.choice == "uniform":
             sep = np.random.randint(1, self.data[0].shape[0])
-            index_i, index_j = index_i[0:sep], index_j[sep:]
+            index_i = random.sample(index, sep)
+            index_j = random.sample(index, len(index) - sep)
 
         elif self.choice == "gauss":
             sep = np.random.normal(loc=0.5, scale=0.1, size=1)
             sep = int(sep * self.data[0].shape[0])
-            if x == 0:
-                x = 1
-            elif x >= self.data[0].shape[0]:
-                x = self.data[0].shape[0]
-            index_i, index_j = index_i[0:x], index_j[x:]
+            if sep == 0:
+                sep = 1
+            elif sep >= self.data[0].shape[0]:
+                sep = self.data[0].shape[0]
 
-        min_error, max_error, expected_lp = error_cover_area(
+            index_i = random.sample(index, sep)
+            index_j = random.sample(index, len(index) - sep)
+
+        ci_min, ci_max, expected_lp = ci_loss_interval(
             lp_i, lp_j, len(index_i), len(index_j), self.CI
         )
 
-        return expected_lp, index_i, index_j, min_error, max_error
+        return expected_lp, index_i, index_j, ci_min, ci_max
 
     def __getitem__(self, idx):
         data_i, label_i, lp_i = self.data[idx], self.label[idx], self.lp[idx]
         MixBag = random.choice([True, False])
         if MixBag:
-            index = np.random.randint(0, self.len)
+            j = np.random.randint(0, self.len)
             data_j, labels_j, lp_j = (
-                self.data[index],
-                self.label[index],
-                self.lp[index],
+                self.data[j],
+                self.label[j],
+                self.lp[j],
             )
 
-            index_i, index_j = np.arange(data_i.shape[0]), np.arange(data_i.shape[0])
-            random.shuffle(index_i)
-            random.shuffle(index_j)
+            id = list(range(data_i.shape[0]))
 
-            expected_lp, index_i, index_j, ci_min, ci_max = self.sampling(
-                index_i, index_j, lp_i, lp_j
-            )
+            # expected_lp: mixed_bag's label proportion
+            # id_i: index used for creating subbag_i from data_i
+            # id_j: index used for creating subbag_j from data_j
+            # ci_min: minimam value of confidence interval
+            # ci_max: maximam value of confidence interval
+            expected_lp, id_i, id_j, ci_min, ci_max = self.sampling(id, lp_i, lp_j)
 
-            subbag_i, subbag_labels_i = data_i[index_i], label_i[index_i]
-            subbag_j, subbag_labels_j = (
-                data_j[index_j],
-                labels_j[index_j],
-            )
+            subbag_i, subbag_labels_i = data_i[id_i], label_i[id_j]
+            subbag_j, subbag_labels_j = (data_j[id_i], labels_j[id_j])
+
             mixed_bag = np.concatenate([subbag_i, subbag_j], axis=0)
             mixed_label = np.concatenate([subbag_labels_i, subbag_labels_j])
 

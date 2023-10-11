@@ -7,7 +7,7 @@ class SimpleArgumentParser(Tap):
     epochs: int = 1000  # the number of epochs
     batch_size: int = 512  # batch size for training
     mini_batch: int = 32  # mini batch size for training (the number of labeled bags)
-    patience: int = 1  # patience of early stopping
+    patience: int = 10  # patience of early stopping
     lr: float = 3e-4  # learning rate
     confidence_interval: float = 0.005  # 0.005 means 99% confidential interval
     choice: str = "uniform"  # γ-sampling
