@@ -3,13 +3,18 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", default=0, type=int)
-parser.add_argument("--epochs", default=1000, type=int)
-parser.add_argument("--batch_size_test", default=512, type=int)
+parser.add_argument("--epochs", default=1000, type=int, help="max epoch")
+parser.add_argument(
+    "--batch_size_test",
+    default=512,
+    type=int,
+    help="batch size in test time. this is not applied in training",
+)
 parser.add_argument(
     "--mini_batch",
     default=32,
     type=int,
-    help="mini batch size for training (the number of labeled bags)",
+    help="you can set the number of labeled bags used in an iteration",
 )
 parser.add_argument(
     "--patience", default=10, type=int, help="patience of early stopping"
@@ -23,14 +28,10 @@ parser.add_argument(
 )
 parser.add_argument("--choice", default="uniform", type=str, help="γ-sampling")
 
-parser.add_argument("--bag_size", default=10, type=int, help="bag size")
-parser.add_argument(
-    "--bags_num", default=512, type=int, help="the number of labeled bags"
-)
 parser.add_argument(
     "--num_workers", default=4, type=int, help="number of workers for dataloader"
 )
-
+# model parameter
 parser.add_argument("--pretrained", default=True, type=bool)
 parser.add_argument("--classes", default=10, type=int, help="the number of classes")
 parser.add_argument("--channels", default=3, type=int, help="input image's channel")

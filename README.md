@@ -20,25 +20,23 @@ $ pip install -r requirements.py
 
 ## Dataset
 ```
-./dataset
-    ├── train
-    │   └── train_imgs                       
-    │        ├── sequence001                # Each sequence has 300 images 
-    │        ├── sequence002
-    │        ├── :
-    │        └── sequenceN                       
-    ├── val  
-    │   └─ val_imgs                          # Same structure of train_imgs
-    │        ├── sequence011                # Each sequence has 12 images 
-    │        ├── sequence015
-    │        ├── :
-    │        └── sequenceM  
-    └── test
-         └── test_imgs                       # Same structure of train_imgs.
-              ├── sequence011                # Each sequence has 300 images 
-              ├── sequence015
-              ├── :
-              └── sequenceM  
+./data
+    ├── 0
+    │   ├── train_bags.npy          # train data (512, 10, 32, 32, 3) = (the number of bags, bag size, height, width, channel)
+    │   ├── train_labels.npy        # train class label of each data (512, 10) = (the number of bags, bag size)
+    │   ├── train_original_lps.npy  # train label proportions (512, 10) = (the number of bags, class label proportions)
+    │   ├── val_bags.npy            # val data (10, 64, 32, 32, 3) = (the number of bags, bag size, height, width, channel)
+    │   ├── val_labels.npy          # val class label of each data (10, 64) = (the number of bags, bag size)
+    │   └── val_original_lps.npy    # val label proportions(10, 10) = (the number of bags, class label proportions)
+    │                
+    ├── :
+    │
+    ├── 4
+    │
+    ├── test_data.npy               # (10000, 32, 32, 3) = (the number of data, height, width, channel)
+    │
+    └── test_label.npy              # (10000,) = (the number of data labels)
+         
 ```
 
 ## Training & Test
