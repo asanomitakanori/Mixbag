@@ -3,7 +3,6 @@ import numpy as np
 
 import torch
 import torchvision.transforms as transforms
-from hydra.utils import to_absolute_path as to_abs_path
 
 from utils.utils import fix_seed, ci_loss_interval, worker_init_fn
 
@@ -98,45 +97,6 @@ class Dataset_Base(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         """Overload this function in your Dataset."""
         raise NotImplementedError
-
-
-class Dataset_Val(Dataset_Base):
-    """Validation Dataset"""
-
-    def __init__(self, data, label, lp):
-        super().__init__(data, label)
-        self.lp = lp
-
-    def __getitem__(self, idx):
-        data, label, lp = self.data[idx], self.label[idx], self.lp[idx]
-        if len(data.shape) == 3:
-            data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
-        # bs: bag size, w: width, h: height, c: channel
-        data = self.transform_data(data)
-
-        return {
-            "img": data,
-            "label": torch.tensor(label).long(),
-            "label_prop": torch.tensor(lp).float(),
-        }
-
-
-class Dataset_Test(Dataset_Base):
-    """Test Dataset"""
-
-    def __init__(self, data, label):
-        super().__init__(data, label)
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):
-        img, label = self.data[idx], self.label[idx]
-        if len(img.shape) != 3:
-            img = img.reshape(img.shape[0], img.shape[1], 1)
-        img = self.transform(img)
-
-        return {"img": img, "label": torch.tensor(label).long()}
 
 
 class Dataset_Mixbag(Dataset_Base):
@@ -248,3 +208,42 @@ class Dataset_Mixbag(Dataset_Base):
                 "ci_min_value": ci_min,  # ci_min_value: [10]
                 "ci_max_value": ci_max,  # ci_max_value: [10]
             }
+
+
+class Dataset_Val(Dataset_Base):
+    """Validation Dataset"""
+
+    def __init__(self, data, label, lp):
+        super().__init__(data, label)
+        self.lp = lp
+
+    def __getitem__(self, idx):
+        data, label, lp = self.data[idx], self.label[idx], self.lp[idx]
+        if len(data.shape) == 3:
+            data = data.reshape(data.shape[0], data.shape[1], data.shape[2], 1)
+        # bs: bag size, w: width, h: height, c: channel
+        data = self.transform_data(data)
+
+        return {
+            "img": data,
+            "label": torch.tensor(label).long(),
+            "label_prop": torch.tensor(lp).float(),
+        }
+
+
+class Dataset_Test(Dataset_Base):
+    """Test Dataset"""
+
+    def __init__(self, data, label):
+        super().__init__(data, label)
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, idx):
+        img, label = self.data[idx], self.label[idx]
+        if len(img.shape) != 3:
+            img = img.reshape(img.shape[0], img.shape[1], 1)
+        img = self.transform(img)
+
+        return {"img": img, "label": torch.tensor(label).long()}
