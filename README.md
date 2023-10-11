@@ -1,4 +1,4 @@
-# Mixbag: Bag-Level Data Augmentation for Learning from Label Proportions
+# [Mixbag: Bag-Level Data Augmentation for Learning from Label Proportions](https://openaccess.thecvf.com/content/ICCV2023/papers/Asanomi_MixBag_Bag-Level_Data_Augmentation_for_Learning_from_Label_Proportions_ICCV_2023_paper.pdf)
 
 ## Overview of our method
 ![Illustration](./image/overview.png)
@@ -7,17 +7,18 @@ Takanori Asanomi, Shinnosuke Matsuo, Daiki Suehiro, Ryoma Bise
 
 
 ## Requirements
-* PyTorch 
+* python >= 3.9
 * cuda && cudnn
 
 We strongly recommend using a virtual environment like Anaconda or Docker.
 The following is how to build the virtual environment for this code using anaconda.
 ```
+# pytorch install
+$ pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
 $ pip install -r requirements.py
 ```
 
 ## Dataset
-
 ```
 ./dataset
     ├── train
@@ -39,3 +40,27 @@ $ pip install -r requirements.py
               ├── :
               └── sequenceM  
 ```
+
+## Training & Test
+If you want to train network, please run following command.
+5 fold cross-validation is implemented and Test is automatically done in our code.
+```
+$ python run.py
+```
+
+## Citation
+If you find MixBag useful in your work, please cite our paper:
+```none
+@inproceedings{asanomi2023mixbag,
+  title={MixBag: Bag-Level Data Augmentation for Learning from Label Proportions},
+  author={Asanomi, Takanori and Matsuo, Shinnosuke and Suehiro, Daiki and Bise, Ryoma},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+  pages={16570--16579},
+  year={2023}
+}
+```
+
+## Author
+👤 **Takanori Asanomi**
+* Github: [@takanoriasanomi](https://github.com/asanomitakanori)
+* Contact: asataka1998@gmail.com
