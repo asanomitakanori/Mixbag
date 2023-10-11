@@ -48,6 +48,9 @@ If you want to train network, please run following command.
 $ python run.py
 ```
 
+## Arguments
+You can set up any parameters at arguments.py
+
 ## Citation
 If you find MixBag useful in your work, please cite our paper:
 ```none
