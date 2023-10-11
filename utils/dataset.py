@@ -51,7 +51,7 @@ def load_data(args, stage: str):
         test_dataset = Dataset_Test(data=test_data, label=test_label)
         test_loader = torch.utils.data.DataLoader(
             test_dataset,
-            batch_size=args.batch_size,
+            batch_size=args.batch_size_test,
             shuffle=False,
             num_workers=args.num_workers,
         )
@@ -215,8 +215,8 @@ class Dataset_Mixbag(Dataset_Base):
             # ci_max: maximam value of confidence interval
             expected_lp, id_i, id_j, ci_min, ci_max = self.sampling(id, lp_i, lp_j)
 
-            subbag_i, subbag_labels_i = data_i[id_i], label_i[id_j]
-            subbag_j, subbag_labels_j = (data_j[id_i], labels_j[id_j])
+            subbag_i, subbag_labels_i = data_i[id_i], label_i[id_i]
+            subbag_j, subbag_labels_j = (data_j[id_j], labels_j[id_j])
 
             mixed_bag = np.concatenate([subbag_i, subbag_j], axis=0)
             mixed_label = np.concatenate([subbag_labels_i, subbag_labels_j])

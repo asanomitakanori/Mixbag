@@ -1,27 +1,43 @@
-from tap import Tap
+# from tap import Tap
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--seed", default=0, type=int)
+parser.add_argument("--epochs", default=1000, type=int)
+parser.add_argument("--batch_size_test", default=512, type=int)
+parser.add_argument(
+    "--mini_batch",
+    default=32,
+    type=int,
+    help="mini batch size for training (the number of labeled bags)",
+)
+parser.add_argument(
+    "--patience", default=10, type=int, help="patience of early stopping"
+)
+parser.add_argument("--lr", default=3e-4, type=float, help="learning rate")
+parser.add_argument(
+    "--confidence_interval",
+    default=0.005,
+    type=float,
+    help="0.005 means 99% confidential interval",
+)
+parser.add_argument("--choice", default="uniform", type=str, help="γ-sampling")
 
-class SimpleArgumentParser(Tap):
-    # Training
-    seed: int = 0  # seed value
-    epochs: int = 1000  # the number of epochs
-    batch_size: int = 512  # batch size for training
-    mini_batch: int = 32  # mini batch size for training (the number of labeled bags)
-    patience: int = 10  # patience of early stopping
-    lr: float = 3e-4  # learning rate
-    confidence_interval: float = 0.005  # 0.005 means 99% confidential interval
-    choice: str = "uniform"  # γ-sampling
+parser.add_argument("--bag_size", default=10, type=int, help="bag size")
+parser.add_argument(
+    "--bags_num", default=512, type=int, help="the number of labeled bags"
+)
+parser.add_argument(
+    "--num_workers", default=4, type=int, help="number of workers for dataloader"
+)
 
-    # Dataset
-    bag_size: int = 10  # bag size
-    bags_num: int = 512  # the number of labeled bags
-    num_workers: int = 4  # number of workers for dataloader
+parser.add_argument("--pretrained", default=True, type=bool)
+parser.add_argument("--classes", default=10, type=int, help="the number of classes")
+parser.add_argument("--channels", default=3, type=int, help="input image's channel")
+parser.add_argument("--dataset", default="cifar10", type=str, help="dataset name")
+parser.add_argument(
+    "--output_path", default="result/", type=str, help="output file name"
+)
+parser.add_argument("--device", default="cuda:0", type=str)
 
-    # Model
-    pretrained: bool = True
-
-    classes: int = 10
-    channels: int = 3  # input image's channel
-    dataset: str = "cifar10"  # dataset name
-    output_path: str = "result/"  # output file name
-    device: str = "cuda:0"  # device
+ARGS = parser.parse_args()

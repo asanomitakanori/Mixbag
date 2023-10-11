@@ -1,15 +1,10 @@
 import os
 import sys
 import logging
-from tqdm import tqdm
-from argument import SimpleArgumentParser
+import argument
 
-import numpy as np
 import torch
-import torch.nn as nn
-from torchvision.models import resnet18
 
-from hydra.utils import to_absolute_path as abs_path
 from utils.utils import *
 from utils.losses import *
 
@@ -58,5 +53,5 @@ def main(args):
 
 
 if __name__ == "__main__":
-    args = SimpleArgumentParser().parse_args()
+    args = argument.ARGS
     main(args)

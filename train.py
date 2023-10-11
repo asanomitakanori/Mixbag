@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix
 
 
 class Run(object):
-    """Base class for training, validation, test."""
+    """Class for training, validation, test."""
 
     def __init__(self, args):
         self.model = model_import(args)
