@@ -37,16 +37,15 @@ def main(args):
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logging.info(f"Using device {args.device}")
+    print(f"Using device {args.device}")
 
     args.output_path = args.output_path + args.dataset
 
     # 5 fold cross validation
     for fold in range(5):
         args.fold = fold
-        os.makedirs(args.output_path + "/" + str(args.fold)) if os.path.exists(
-            args.output_path + "/" + str(args.fold)
-        ) is False else None
+        path = args.output_path + "/" + str(args.fold)
+        os.makedirs(path) if os.path.exists(path) is False else None
 
         try:
             net(args)

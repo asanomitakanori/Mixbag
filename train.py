@@ -6,6 +6,7 @@ import torch
 
 from utils.utils import *
 from utils.losses import *
+from utils.dataset import *
 
 from sklearn.metrics import confusion_matrix
 
@@ -22,10 +23,13 @@ class Run(object):
         )
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
 
-        self.train_loader, self.val_loader, self.test_loader = load_data_bags(args)
+        # dataloader
+        self.train_loader = load_data(args, stage="train")
+        self.val_loader = load_data(args, stage="val")
+        self.test_loader = load_data(args, stage="test")
+
         # Proportion loss with confidence interval
         self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
-        self.train_check = True
 
         # early stopping parameters
         self.val_loss = None
@@ -141,7 +145,6 @@ class Run(object):
         Returns:
             None
         """
-
         # Load Best Parameters
         logging.info(f"Model loaded from {self.best_path}")
         self.model.load_state_dict(torch.load(self.best_path, map_location=args.device))
