@@ -35,7 +35,20 @@ parser.add_argument(
 parser.add_argument("--pretrained", default=True, type=bool)
 parser.add_argument("--classes", default=10, type=int, help="the number of classes")
 parser.add_argument("--channels", default=3, type=int, help="input image's channel")
-parser.add_argument("--dataset", default="cifar10", type=str, help="dataset name")
+parser.add_argument(
+    "--dataset",
+    default="cifar10",
+    choices=[
+        "bloodmnist",
+        "octmnist",
+        "organamnist",
+        "orancmnist",
+        "organsmnist",
+        "pathmnist",
+    ],
+    type=str,
+    help="dataset name",
+)
 parser.add_argument(
     "--output_path", default="result/", type=str, help="output file name"
 )

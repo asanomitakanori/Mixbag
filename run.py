@@ -11,7 +11,7 @@ from utils.losses import *
 from train import Run
 
 
-def net(args):
+def main(args):
     fix_seed(args.seed)
     run = Run(args)
 
@@ -27,14 +27,14 @@ def net(args):
     run.test(args, epoch)
 
 
-def main(args):
+if __name__ == "__main__":
+    args = arguments.ARGS
     fix_seed(args.seed)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device {args.device}")
-
     args.output_path = args.output_path + args.dataset
+    print(f"Using device {args.device}")
 
     # 5 fold cross validation
     for fold in range(5):
@@ -43,15 +43,11 @@ def main(args):
         os.makedirs(path) if os.path.exists(path) is False else None
 
         try:
-            net(args)
+            main(args)
         except KeyboardInterrupt:
             logging.info("KeyboardInterrupt")
             try:
                 sys.exit(0)
             except SystemExit:
                 os._exit(0)
-
-
-if __name__ == "__main__":
-    args = arguments.ARGS
     main(args)

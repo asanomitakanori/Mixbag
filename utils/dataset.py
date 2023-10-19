@@ -11,7 +11,7 @@ def load_data(args, stage: str):
     if stage == "train":
         train_bags = np.load(f"data/{args.dataset}/{args.fold}/train_bags.npy")
         train_labels = np.load(f"data/{args.dataset}/{args.fold}/train_labels.npy")
-        train_lps = np.load(f"data/{args.dataset}/{args.fold}/train_original_lps.npy")
+        train_lps = np.load(f"data/{args.dataset}/{args.fold}/train_lps.npy")
         train_dataset = Dataset_Mixbag(
             args=args,
             data=train_bags,
@@ -30,7 +30,7 @@ def load_data(args, stage: str):
     elif stage == "val":
         val_bags = np.load(f"data/{args.dataset}/{args.fold}/val_bags.npy")
         val_labels = np.load(f"data/{args.dataset}/{args.fold}/val_labels.npy")
-        val_lps = np.load(f"data/{args.dataset}/{args.fold}/val_original_lps.npy")
+        val_lps = np.load(f"data/{args.dataset}/{args.fold}/val_lps.npy")
         val_dataset = Dataset_Val(
             data=val_bags,
             label=val_labels,
