@@ -23,7 +23,7 @@ You can create dataset by running following code. Dataset is stored in `./data` 
 $ python create_dataset.py
 ```
 
-The Data structure of `./data` directory is showed as belows.
+The Data structure of `./data` directory is written as belows.
 ```
 ./data
      └── cifar10  # dataset name

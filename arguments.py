@@ -39,6 +39,7 @@ parser.add_argument(
     "--dataset",
     default="cifar10",
     choices=[
+        "svhn",
         "bloodmnist",
         "octmnist",
         "organamnist",
