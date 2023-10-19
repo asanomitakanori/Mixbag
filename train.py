@@ -28,6 +28,16 @@ class Run(object):
         self.val_loader = load_data(args, stage="val")
         self.test_loader = load_data(args, stage="test")
 
+        # Consistency loss
+        if args.consistency == "none":
+            self.consistency_criterion = None
+        elif args.consistency == "vat":
+            self.consistency_criterion = VATLoss()
+        elif args.consistency == "pi":
+            self.consistency_criterion = PiModelLoss()
+        else:
+            raise NameError("Unknown consistency criterion")
+
         # Proportion loss with confidence interval
         self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
 
@@ -59,6 +69,17 @@ class Run(object):
             img = batch["img"].reshape(-1, c, w, h).to(args.device)
             lp_gt = batch["label_prop"].to(args.device)
 
+            # Consistency loss
+            if args.consistency != "none":
+                consistency_loss = self.consistency_criterion(self.model, self.img)
+                consistency_rampup = (
+                    0.4 * args.num_epochs * len(self.train_loader) / args.mini_batch
+                )
+                alpha = get_rampup_weight(0.05, epoch, consistency_rampup)
+                consistency_loss = alpha * consistency_loss
+            else:
+                consistency_loss = torch.tensor(0.0)
+
             output = self.model(img)
 
             output = F.softmax(output, dim=1)
@@ -72,6 +93,7 @@ class Run(object):
                 batch["ci_min_value"].to(args.device),
                 batch["ci_max_value"].to(args.device),
             )
+            loss += consistency_loss
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()

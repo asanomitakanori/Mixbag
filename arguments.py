@@ -11,6 +11,13 @@ parser.add_argument(
     help="batch size in test time. this is not applied in training",
 )
 parser.add_argument(
+    "--consistency",
+    default="none",
+    type=str,
+    choices=["none", "vat", "pi"],
+    help="batch size in test time. this is not applied in training",
+)
+parser.add_argument(
     "--mini_batch",
     default=32,
     type=int,
@@ -27,7 +34,12 @@ parser.add_argument(
     help="0.005 means 99% confidential interval",
 )
 parser.add_argument("--choice", default="uniform", type=str, help="γ-sampling")
-
+parser.add_argument(
+    "--c",
+    default=32,
+    type=int,
+    help="you can set the number of labeled bags used in an iteration",
+)
 parser.add_argument(
     "--num_workers", default=4, type=int, help="number of workers for dataloader"
 )
