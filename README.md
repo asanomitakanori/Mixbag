@@ -26,7 +26,7 @@ $ python create_dataset.py
 The Data structure of `./data` directory is showed as belows.
 ```
 ./data
-     └── cifar10
+     └── cifar10  # dataset name
      │    ├── 0  # 5-fold 
      │    │   ├── train_bags.npy          # train data (512, 10, 32, 32, 3) = (the number of bags, bag size, height, width, channel)
      │    │   ├── train_labels.npy        # train class label of each data (512, 10) = (the number of bags, bag size)
@@ -49,7 +49,7 @@ The Data structure of `./data` directory is showed as belows.
      │    │
      │    └── test_label.npy              # (10000,) = (the number of data labels)
      │
-     ├──  svhn
+     ├──  svhn  # dataset name
      │
      :
 ```
