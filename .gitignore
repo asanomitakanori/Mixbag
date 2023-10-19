@@ -4,6 +4,5 @@ result
 dust
 train_for_research.py
 docker
-data
 may.py
 medmnist/pathmnist.npz
