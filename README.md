@@ -18,7 +18,7 @@ $ pip install -r requirements.py
 ```
 
 ## Dataset
-You can create dataset by running following code. Dataset is stored in `./data` directory.
+You can create dataset by running following code. Dataset will be saved in `./data` directory.
 ```
 $ python create_dataset.py
 ```
