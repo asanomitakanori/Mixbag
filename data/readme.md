@@ -1,4 +1,4 @@
-## Dataset
+## Data
 The `pathmnist` dataset is already set as exmaple.
 
 You can create dataset by running following code. Dataset is stored in `./data` directory.
