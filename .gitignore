@@ -6,4 +6,4 @@ train_for_research.py
 docker
 data
 may.py
-medmnist
+medmnist/pathmnist.npz
