@@ -55,7 +55,7 @@ The Data structure of `./data` directory is written as belows.
 ```
 
 ## Training & Test
-After creating your python environment and Dataset which can be made by following above command, you can run Mixbag code. \\
+After creating your python environment and Dataset which can be made by following above command, you can run Mixbag code.  
 If you want to train network, please run following command.
 5 fold cross-validation is implemented and Test is automatically done in our code.
 ```
