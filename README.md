@@ -50,8 +50,8 @@ The Data structure of `./data` directory is showed as belows.
      │    └── test_label.npy              # (10000,) = (the number of data labels)
      │
      ├──  svhn  # dataset name
-     │
-     :
+     │    ├── 0  # 5-fold
+     :    :
 ```
 
 ## Training & Test
