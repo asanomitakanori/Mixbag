@@ -25,12 +25,14 @@ def main(args):
             break
     # Test
     run.test(args, epoch)
+    return run.test_acc
 
 
 if __name__ == "__main__":
     args = arguments.ARGS
     fix_seed(args.seed)
     set_arguments(args)
+    test_acc = []
 
     # 5 fold cross validation
     for fold in range(5):
@@ -39,11 +41,15 @@ if __name__ == "__main__":
         os.makedirs(path) if os.path.exists(path) is False else None
 
         try:
-            main(args)
+            acc = main(args)
+            test_acc.append(acc)
         except KeyboardInterrupt:
             print("KeyboardInterrupt")
             try:
                 sys.exit(0)
             except SystemExit:
                 os._exit(0)
-    main(args)
+
+    test_acc = np.mean(test_acc)
+    print("5-Fold Test Accuracy: {:.4f}".format(test_acc))
+    write_csv(args, test_acc)

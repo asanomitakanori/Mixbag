@@ -1,12 +1,15 @@
 import random
-import seaborn as sns
+import csv
+import pandas as pd
 
+import seaborn as sns
 import numpy as np
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torchvision.models import resnet18
 
 
@@ -96,3 +99,21 @@ def calculate_prop(output, nb, bs):
     output = output.reshape(nb, bs, -1)
     lp_pred = output.mean(dim=1)
     return lp_pred
+
+
+def write_csv(args, test_acc):
+    with open("log.csv", "a", newline="") as file:
+        writer = csv.writer(file)
+        data = [
+            args.dataset,  #  Dataset,
+            args.consistency,  # Consistency,
+            "○",  # MixBag
+            args.confidence_interval,  # Confidence_Interval
+            args.choice,  # γ-sampling
+            "512",  # The number of bag
+            "10",  # Bag size
+            args.lr,  # Learning rate
+            args.patience,  # Patience
+            "{:.4}".format(test_acc),  # Accuracy
+        ]
+        writer.writerow(data)

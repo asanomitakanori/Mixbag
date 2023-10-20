@@ -32,6 +32,7 @@ class Run(object):
         self.patience = args.patience
         # Proportion loss with confidence interval
         self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
+        self.test_acc = []
 
         # Consistency loss
         if args.consistency == "none":
@@ -136,6 +137,7 @@ class Run(object):
 
         gt, pred = np.array(gt), np.array(pred)
         test_acc = (gt == pred).mean()
+        self.test_acc.append(test_acc)
 
         # calculate confusion matrix and save confusion matrix
         test_cm = confusion_matrix(y_true=gt, y_pred=pred, normalize="true")
