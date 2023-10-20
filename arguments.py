@@ -2,53 +2,90 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--seed", default=0, type=int)
-parser.add_argument("--epochs", default=1000, type=int, help="max epoch")
+parser.add_argument("--s", "--seed", dest="seed", default=0, type=int)
 parser.add_argument(
+    "--e", "--epochs", dest="epochs", default=1000, type=int, help="max epoch"
+)
+parser.add_argument(
+    "--b",
     "--batch_size_test",
+    dest="batch_size_test",
     default=512,
     type=int,
     help="batch size in test time. this is not applied in training",
 )
 parser.add_argument(
+    "--con",
     "--consistency",
+    dest="consistency",
     default="none",
     type=str,
     choices=["none", "vat", "pi"],
     help="batch size in test time. this is not applied in training",
 )
 parser.add_argument(
+    "--m",
     "--mini_batch",
+    dest="mini_batch",
     default=32,
     type=int,
     help="you can set the number of labeled bags used in an iteration",
 )
 parser.add_argument(
-    "--patience", default=10, type=int, help="patience of early stopping"
+    "--p",
+    "--patience",
+    dest="patience",
+    default=10,
+    type=int,
+    help="patience of early stopping",
 )
-parser.add_argument("--lr", default=3e-4, type=float, help="learning rate")
 parser.add_argument(
+    "--lr",
+    "--learning_rate",
+    dest="lr",
+    default=3e-4,
+    type=float,
+    help="learning rate",
+)
+parser.add_argument(
+    "--ci",
     "--confidence_interval",
+    dest="confidence_interval",
     default=0.005,
     type=float,
     help="0.005 means 99% confidential interval",
 )
-parser.add_argument("--choice", default="uniform", type=str, help="γ-sampling")
 parser.add_argument(
-    "--c",
-    default=32,
-    type=int,
-    help="you can set the number of labeled bags used in an iteration",
+    "--choice", dest="choice", default="uniform", type=str, help="γ-sampling"
 )
 parser.add_argument(
     "--num_workers", default=4, type=int, help="number of workers for dataloader"
 )
 # model parameter
-parser.add_argument("--pretrained", default=True, type=bool)
-parser.add_argument("--classes", default=10, type=int, help="the number of classes")
-parser.add_argument("--channels", default=3, type=int, help="input image's channel")
+parser.add_argument(
+    "--pretrained",
+    dest="pretrained",
+    default=True,
+    type=bool,
+    help="whether you use preterained model (True of False)",
+)
+parser.add_argument(
+    "--classes",
+    dest="classes",
+    default=10,
+    type=int,
+    help="the number of dataset's classes. This depends on dataset.",
+)
+parser.add_argument(
+    "--channels",
+    dest="channels",
+    default=3,
+    type=int,
+    help="Input image's channels. This depends on dataset.",
+)
 parser.add_argument(
     "--dataset",
+    dest="dataset",
     default="pathmnist",
     choices=[
         "cifar10",
@@ -64,8 +101,18 @@ parser.add_argument(
     help="dataset name",
 )
 parser.add_argument(
-    "--output_path", default="result/", type=str, help="output file name"
+    "--output_path",
+    dest="output_path",
+    default="result/",
+    type=str,
+    help="output path",
 )
-parser.add_argument("--device", default="cuda:0", type=str)
+parser.add_argument(
+    "--device",
+    dest="device",
+    default="cuda:0",
+    type=str,
+    help="You can choose gpu or cpu. default is set as cuda.",
+)
 
 ARGS = parser.parse_args()

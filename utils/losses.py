@@ -177,23 +177,21 @@ class DynamicWeight(object):
         return self.lam
 
 
-class ProportionLoss_statistic(nn.Module):
-    def __init__(self, metric="ce", eps=1e-8):
-        super().__init__()
-        self.metric = metric
-        self.eps = eps
+def consistency_loss_function(
+    args, consistency_criterion, model, img, train_loader, epoch
+):
+    if args.consistency != "none":
+        consistency_loss = consistency_criterion(model, img)
+        consistency_rampup = 0.4 * args.num_epochs * len(train_loader) / args.mini_batch
+        alpha = get_rampup_weight(0.05, epoch, consistency_rampup)
+        consistency_loss = alpha * consistency_loss
+    else:
+        consistency_loss = torch.tensor(0.0)
+    return consistency_loss
 
-    def forward(self, pred, target, min_area, max_area):
-        if self.metric == "ce":
-            mask = torch.where((pred <= max_area) & (pred >= min_area), target, pred)
-            loss = cross_entropy_loss(mask, target, eps=self.eps)
-        elif self.metric == "l1":
-            loss = F.l1_loss(pred, target, reduction="none")
-        elif self.metric == "mse":
-            loss = F.mse_loss(pred, target, reduction="none")
-        else:
-            raise NameError("metric {} is not supported".format(self.metric))
 
-        loss = torch.sum(loss, dim=-1)
-        loss = loss.mean()
-        return loss
+def calculate_prop(output, nb, bs):
+    output = F.softmax(output, dim=1)
+    output = output.reshape(nb, bs, -1)
+    lp_pred = output.mean(dim=1)
+    return lp_pred

@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix
 
 
 class Run(object):
-    """Class for training, validation, test."""
+    """Class for training, validation and test."""
 
     def __init__(self, args):
         self.model = model_import(args)
@@ -43,40 +43,26 @@ class Run(object):
             raise NameError("Unknown consistency criterion")
 
     def train(self, args, epoch):
-        """Training
-        Args:
-            args (argparse): contain parameters
-            epoch (int): current epoch
-
-        Returns:
-            None
-        """
         self.model.train()
         losses = []
-
         for batch in tqdm(self.train_loader, leave=False):
             # nb: the number of bags, bs: bag size, c: channel, w: width, h: height
-            (nb, bs, c, w, h) = batch["img"].size()
+            nb, bs, c, w, h = batch["img"].size()
             img = batch["img"].reshape(-1, c, w, h).to(args.device)
             lp_gt = batch["label_prop"].to(args.device)
 
             # Consistency loss
-            if args.consistency != "none":
-                consistency_loss = self.consistency_criterion(self.model, self.img)
-                consistency_rampup = (
-                    0.4 * args.num_epochs * len(self.train_loader) / args.mini_batch
-                )
-                alpha = get_rampup_weight(0.05, epoch, consistency_rampup)
-                consistency_loss = alpha * consistency_loss
-            else:
-                consistency_loss = torch.tensor(0.0)
+            consistency_loss = consistency_loss_function(
+                args,
+                self.consistency_criterion,
+                self.model,
+                img,
+                self.train_loader,
+                epoch,
+            )
 
             output = self.model(img)
-
-            output = F.softmax(output, dim=1)
-            output = output.reshape(nb, bs, -1)
-            lp_pred = output.mean(dim=1)
-            assert len(lp_pred.shape) == 2, "lp_pred.shape should be 2"
+            lp_pred = calculate_prop(output, nb, bs)
 
             loss = self.loss_train(
                 lp_pred,
@@ -94,14 +80,6 @@ class Run(object):
         print("[Epoch: %d/%d] train loss: %.4f" % (epoch + 1, args.epochs, train_loss))
 
     def val(self, args, epoch: int):
-        """Evaluation
-        Args:
-            args (argparse): contain parameters
-            epoch (int): current epoch
-
-        Returns:
-            None
-        """
         self.model.eval()
         losses = []
         with torch.no_grad():
@@ -153,9 +131,7 @@ class Run(object):
             None
         """
         # Load Best Parameters
-        print(f"Model loaded from {self.best_path}")
         self.model.load_state_dict(torch.load(self.best_path, map_location=args.device))
-
         self.model.eval()
         gt, pred = [], []
 
@@ -179,5 +155,5 @@ class Run(object):
             path=self.output_path + "/" + str(self.fold) + "/Confusion_matrix.png",
             title="test: acc: %.4f" % test_acc,
         )
-
         print(f"[Epoch: {epoch + 1}/{args.epochs}] test acc: {np.round(test_acc, 4)}")
+        print("========================")
