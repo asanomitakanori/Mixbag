@@ -30,11 +30,7 @@ def main(args):
 if __name__ == "__main__":
     args = arguments.ARGS
     fix_seed(args.seed)
-
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    args.output_path = args.output_path + args.dataset
-    print(f"Using device {args.device}")
+    set_arguments(args)
 
     # 5 fold cross validation
     for fold in range(5):
@@ -45,7 +41,7 @@ if __name__ == "__main__":
         try:
             main(args)
         except KeyboardInterrupt:
-            logging.info("KeyboardInterrupt")
+            print("KeyboardInterrupt")
             try:
                 sys.exit(0)
             except SystemExit:

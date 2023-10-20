@@ -70,3 +70,22 @@ def model_import(args, model_name=None):
         model.fc = nn.Linear(model.fc.in_features, args.classes)
         model = model.to(args.device)
     return model
+
+
+def set_arguments(args):
+    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    args.output_path = args.output_path + args.dataset
+    if args.dataset == "cifar10" or args.dataset == "svhn":
+        args.classes = 10
+    elif args.dataset == "bloodmnist":
+        args.classes = 8
+    elif args.dataset == "octmnist":
+        args.classes = 4
+    elif args.dataset in ["organamnist", "organcmnist", "organsmnist"]:
+        args.classes = 11
+    elif args.dataset == "pathmnist":
+        args.classes = 9
+    print(f"Using device {args.device}")
+    print(
+        f"Network:\n \t{args.channels} input channels\n \t{args.classes} output channels\n"
+    )

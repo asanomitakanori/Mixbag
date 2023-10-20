@@ -49,8 +49,9 @@ parser.add_argument("--classes", default=10, type=int, help="the number of class
 parser.add_argument("--channels", default=3, type=int, help="input image's channel")
 parser.add_argument(
     "--dataset",
-    default="cifar10",
+    default="pathmnist",
     choices=[
+        "cifar10",
         "svhn",
         "bloodmnist",
         "octmnist",

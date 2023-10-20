@@ -16,31 +16,11 @@ class Run(object):
 
     def __init__(self, args):
         self.model = model_import(args)
-        logging.info(
-            f"Network:\n"
-            f"\t{args.channels} input channels\n"
-            f"\t{args.classes} output channels\n"
-        )
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
-
         # dataloader
         self.train_loader = load_data(args, stage="train")
         self.val_loader = load_data(args, stage="val")
         self.test_loader = load_data(args, stage="test")
-
-        # Consistency loss
-        if args.consistency == "none":
-            self.consistency_criterion = None
-        elif args.consistency == "vat":
-            self.consistency_criterion = VATLoss()
-        elif args.consistency == "pi":
-            self.consistency_criterion = PiModelLoss()
-        else:
-            raise NameError("Unknown consistency criterion")
-
-        # Proportion loss with confidence interval
-        self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
-
         # early stopping parameters
         self.val_loss = None
         self.cnt = 0
@@ -50,6 +30,17 @@ class Run(object):
         self.fold = args.fold
         self.output_path = args.output_path
         self.patience = args.patience
+        # Proportion loss with confidence interval
+        self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
+        # Consistency loss
+        if args.consistency == "none":
+            self.consistency_criterion = None
+        elif args.consistency == "vat":
+            self.consistency_criterion = VATLoss()
+        elif args.consistency == "pi":
+            self.consistency_criterion = PiModelLoss()
+        else:
+            raise NameError("Unknown consistency criterion")
 
     def train(self, args, epoch):
         """Training
@@ -100,10 +91,7 @@ class Run(object):
             losses.append(loss.item())
 
         train_loss = np.array(losses).mean()
-
-        logging.info(
-            "[Epoch: %d/%d] train loss: %.4f" % (epoch + 1, args.epochs, train_loss)
-        )
+        print("[Epoch: %d/%d] train loss: %.4f" % (epoch + 1, args.epochs, train_loss))
 
     def val(self, args, epoch: int):
         """Evaluation
@@ -133,10 +121,7 @@ class Run(object):
                 losses.append(loss.item())
 
         self.val_loss = np.array(losses).mean()
-
-        logging.info(
-            "[Epoch: %d/%d] val loss: %.4f" % (epoch + 1, args.epochs, self.val_loss)
-        )
+        print("[Epoch: %d/%d] val loss: %.4f" % (epoch + 1, args.epochs, self.val_loss))
 
     def early_stopping(self, args, epoch: int):
         """Early Stopping
@@ -168,7 +153,7 @@ class Run(object):
             None
         """
         # Load Best Parameters
-        logging.info(f"Model loaded from {self.best_path}")
+        print(f"Model loaded from {self.best_path}")
         self.model.load_state_dict(torch.load(self.best_path, map_location=args.device))
 
         self.model.eval()
@@ -187,11 +172,6 @@ class Run(object):
         gt, pred = np.array(gt), np.array(pred)
         test_acc = (gt == pred).mean()
 
-        logging.info(
-            f"[Epoch: {epoch + 1}/{args.epochs}] test acc: {np.round(test_acc, 4)}"
-        )
-        logging.info("===============================")
-
         # calculate confusion matrix and save confusion matrix
         test_cm = confusion_matrix(y_true=gt, y_pred=pred, normalize="true")
         save_confusion_matrix(
@@ -199,3 +179,5 @@ class Run(object):
             path=self.output_path + "/" + str(self.fold) + "/Confusion_matrix.png",
             title="test: acc: %.4f" % test_acc,
         )
+
+        print(f"[Epoch: {epoch + 1}/{args.epochs}] test acc: {np.round(test_acc, 4)}")
