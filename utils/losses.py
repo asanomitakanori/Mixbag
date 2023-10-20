@@ -182,7 +182,7 @@ def consistency_loss_function(
 ):
     if args.consistency != "none":
         consistency_loss = consistency_criterion(model, img)
-        consistency_rampup = 0.4 * args.num_epochs * len(train_loader) / args.mini_batch
+        consistency_rampup = 0.4 * args.num_epochs * len(train_loader) / args.batch_size
         alpha = get_rampup_weight(0.05, epoch, consistency_rampup)
         consistency_loss = alpha * consistency_loss
     else:

@@ -32,6 +32,7 @@ class Run(object):
         self.patience = args.patience
         # Proportion loss with confidence interval
         self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
+
         # Consistency loss
         if args.consistency == "none":
             self.consistency_criterion = None
@@ -90,10 +91,7 @@ class Run(object):
                 img, lp_gt = img.to(args.device), batch["label_prop"].to(args.device)
 
                 output = self.model(img)
-
-                output = F.softmax(output, dim=1)
-                output = output.reshape(nb, bs, -1)
-                lp_pred = output.mean(dim=1)
+                lp_pred = calculate_prop(output, nb, bs)
 
                 loss = self.loss_val(lp_pred, lp_gt)
                 losses.append(loss.item())
@@ -122,15 +120,6 @@ class Run(object):
         return self.break_flag
 
     def test(self, args, epoch):
-        """Test
-        Args:
-            args (argparse): contain parameters
-            epoch (int): current epoch
-
-        Returns:
-            None
-        """
-        # Load Best Parameters
         self.model.load_state_dict(torch.load(self.best_path, map_location=args.device))
         self.model.eval()
         gt, pred = [], []

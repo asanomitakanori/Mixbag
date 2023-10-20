@@ -25,8 +25,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--m",
-    "--mini_batch",
-    dest="mini_batch",
+    "--batch_size",
+    dest="batch_size",
     default=32,
     type=int,
     help="you can set the number of labeled bags used in an iteration",
