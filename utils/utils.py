@@ -89,3 +89,10 @@ def set_arguments(args):
     print(
         f"Network:\n \t{args.channels} input channels\n \t{args.classes} output channels\n"
     )
+
+
+def calculate_prop(output, nb, bs):
+    output = F.softmax(output, dim=1)
+    output = output.reshape(nb, bs, -1)
+    lp_pred = output.mean(dim=1)
+    return lp_pred

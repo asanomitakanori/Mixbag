@@ -188,10 +188,3 @@ def consistency_loss_function(
     else:
         consistency_loss = torch.tensor(0.0)
     return consistency_loss
-
-
-def calculate_prop(output, nb, bs):
-    output = F.softmax(output, dim=1)
-    output = output.reshape(nb, bs, -1)
-    lp_pred = output.mean(dim=1)
-    return lp_pred
