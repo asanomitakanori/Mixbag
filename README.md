@@ -59,7 +59,7 @@ After creating your python environment and Dataset which can be made by followin
 If you want to train network, please run following command.
 5 fold cross-validation is implemented and Test is automatically done in our code.
 ```
-$ python train.py
+$ python run.py
 ```
 
 ## Arguments
