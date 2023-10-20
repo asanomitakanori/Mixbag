@@ -20,7 +20,7 @@ def load_data(args, stage: str):
         )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
-            batch_size=args.mini_batch,
+            batch_size=args.batch_size,
             worker_init_fn=worker_init_fn(args.seed),
             shuffle=True,
             num_workers=args.num_workers,
@@ -38,7 +38,7 @@ def load_data(args, stage: str):
         )
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
-            batch_size=args.mini_batch,
+            batch_size=args.batch_size,
             shuffle=False,
             num_workers=args.num_workers,
         )
