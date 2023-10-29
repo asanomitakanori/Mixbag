@@ -35,7 +35,6 @@ class Run(object):
         self.patience = args.patience
         # Proportion loss with confidence interval
         self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
-        self.test_acc = []
 
         # Consistency loss
         if args.consistency == "none":
@@ -123,7 +122,7 @@ class Run(object):
             torch.save(self.model.state_dict(), self.best_path)
         return self.break_flag
 
-    def test(self, args, epoch):
+    def test(self, args):
         self.model.load_state_dict(torch.load(self.best_path, map_location=args.device))
         self.model.eval()
         gt, pred = [], []
@@ -140,7 +139,6 @@ class Run(object):
 
         gt, pred = np.array(gt), np.array(pred)
         test_acc = (gt == pred).mean()
-        self.test_acc.append(test_acc)
 
         # calculate confusion matrix and save confusion matrix
         test_cm = confusion_matrix(y_true=gt, y_pred=pred, normalize="true")
@@ -149,5 +147,5 @@ class Run(object):
             path=self.output_path + "/" + str(self.fold) + "/Confusion_matrix.png",
             title="test: acc: %.4f" % test_acc,
         )
-        print(f"[Epoch: {epoch + 1}/{args.epochs}] test acc: {np.round(test_acc, 4)}")
+        print(f"Test acc: {np.round(test_acc, 4)}")
         print("========================")
