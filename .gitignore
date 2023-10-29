@@ -8,3 +8,5 @@ may.py
 medmnist/pathmnist.npz
 data
 csv2.py
+log.csv
+run_parallel.py

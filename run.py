@@ -1,14 +1,11 @@
 import os
 import sys
-import logging
+
+import numpy as np
+
 import arguments
-
-import torch
-
-from utils.utils import *
-from utils.losses import *
-
 from trainer import Run
+from utils.utils import fix_seed, set_arguments, write_csv
 
 
 def main(args):
@@ -35,7 +32,7 @@ if __name__ == "__main__":
     test_acc = []
 
     # 5 fold cross validation
-    for fold in range(5):
+    for fold in range(args.t_fold):
         args.fold = fold
         path = args.output_path + "/" + str(args.fold)
         os.makedirs(path) if os.path.exists(path) is False else None

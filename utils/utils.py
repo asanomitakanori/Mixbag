@@ -1,15 +1,13 @@
-import random
 import csv
-import pandas as pd
+import random
 
-import seaborn as sns
-import numpy as np
-from scipy.stats import norm
 import matplotlib.pyplot as plt
-
+import numpy as np
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from scipy.stats import norm
 from torchvision.models import resnet18
 
 
@@ -58,9 +56,9 @@ def ci_loss_interval(
     cover2 = t * np.sqrt(proportion2 * (1 - proportion2) / sampling_num2)
     expected_plp = a * proportion1 + b * proportion2
     confidence_area = t * cover1 + b * cover2
-    min = expected_plp - confidence_area
-    max = expected_plp + confidence_area
-    return min, max, expected_plp
+    ci_min_value = expected_plp - confidence_area
+    ci_max_value = expected_plp + confidence_area
+    return ci_min_value, ci_max_value, expected_plp
 
 
 def model_import(args, model_name=None):
@@ -78,7 +76,7 @@ def model_import(args, model_name=None):
 def set_arguments(args):
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.output_path = args.output_path + args.dataset
-    if args.dataset == "cifar10" or args.dataset == "svhn":
+    if args.dataset in ["cifar10", "svhn"]:
         args.classes = 10
     elif args.dataset == "bloodmnist":
         args.classes = 8
@@ -89,9 +87,6 @@ def set_arguments(args):
     elif args.dataset == "pathmnist":
         args.classes = 9
     print(f"Using device {args.device}")
-    print(
-        f"Network:\n \t{args.channels} input channels\n \t{args.classes} output channels\n"
-    )
 
 
 def calculate_prop(output, nb, bs):
@@ -105,7 +100,7 @@ def write_csv(args, test_acc):
     with open("log.csv", "a", newline="") as file:
         writer = csv.writer(file)
         data = [
-            args.dataset,  #  Dataset,
+            args.dataset,  # Dataset,
             args.consistency,  # Consistency,
             "○",  # MixBag
             args.confidence_interval,  # Confidence_Interval

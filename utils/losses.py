@@ -1,11 +1,10 @@
-import math
 import contextlib
+import math
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-import numpy as np
 
 
 def cross_entropy_loss(input, target, eps=1e-8):

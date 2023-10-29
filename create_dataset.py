@@ -1,14 +1,12 @@
 import argparse
-import random
 import os
-
-import numpy as np
+import random
 from glob import glob
 
-from utils.create_dataset_utils import *
+import numpy as np
+from sklearn.model_selection import KFold, StratifiedKFold
 
-from sklearn.model_selection import KFold
-from sklearn.model_selection import StratifiedKFold
+from utils.create_dataset_utils import load_cifar10, load_mnist, load_svhn
 
 
 def make_folder(path):
@@ -108,7 +106,6 @@ def create_bags(data, label, num_posi_bags, num_nega_bags, num_instances, args):
     for n in range(len(proportion_N)):
         bag_idx = []
         for c in range(args.num_classes):
-            # sample_c_index = np.random.choice(idx_c[c], size=int(proportion_N[n][c]), replace=False)
             sample_c_index = idx_c[c][0 : int(proportion_N[n][c])]
             idx_c[c] = idx_c[c][int(proportion_N[n][c]) :]
             bag_idx.extend(sample_c_index)
@@ -151,7 +148,7 @@ def cifar10svhn(args):
         make_folder(output_path)
 
         # train
-        bags, labels, original_lps, partial_lps = create_bags(
+        bags, labels, original_lps, _ = create_bags(
             train_data,
             train_label,
             args.train_num_posi_bags,
@@ -163,7 +160,7 @@ def cifar10svhn(args):
         np.save("%s/train_labels" % (output_path), labels)
         np.save("%s/train_lps" % (output_path), original_lps)
         # val
-        bags, labels, original_lps, partial_lps = create_bags_val(
+        bags, labels, original_lps, _ = create_bags_val(
             val_data,
             val_label,
             args.val_num_posi_bags,

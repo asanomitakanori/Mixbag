@@ -1,11 +1,10 @@
 import gzip
-import numpy as np
-from PIL import Image
-
 import pickle
 import sys
 
+import numpy as np
 import scipy.io as sio
+from PIL import Image
 
 
 def load_svhn(dataset_dir="../dataset/"):
@@ -52,7 +51,7 @@ def load_mnist(dataset_dir="../dataset/MNIST/raw/", is_to_rgb=True):
     test_img = load_img(dataset_dir + key_file["test_img"])
     test_label = load_label(dataset_dir + key_file["test_label"])
 
-    if is_to_rgb == True:
+    if is_to_rgb:
         train_img_rgb = [
             np.array(Image.fromarray(img).convert("RGB")) for img in train_img
         ]

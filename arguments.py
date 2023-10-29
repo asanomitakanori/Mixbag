@@ -7,6 +7,14 @@ parser.add_argument(
     "--e", "--epochs", dest="epochs", default=1000, type=int, help="max epoch"
 )
 parser.add_argument(
+    "--t_fold",
+    "--t_fold",
+    dest="t_fold",
+    default=5,
+    type=int,
+    help="N-fold cross validation",
+)
+parser.add_argument(
     "--b",
     "--batch_size_test",
     dest="batch_size_test",

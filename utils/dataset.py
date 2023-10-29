@@ -1,10 +1,10 @@
 import random
-import numpy as np
 
+import numpy as np
 import torch
 import torchvision.transforms as transforms
 
-from utils.utils import fix_seed, ci_loss_interval, worker_init_fn
+from utils.utils import ci_loss_interval, fix_seed, worker_init_fn
 
 
 def load_data(args, stage: str):

@@ -1,14 +1,17 @@
-import logging
-from tqdm import tqdm
-
 import numpy as np
 import torch
-
-from utils.utils import *
-from utils.losses import *
-from utils.dataset import *
-
 from sklearn.metrics import confusion_matrix
+from tqdm import tqdm
+
+from utils.dataset import load_data
+from utils.losses import (
+    PiModelLoss,
+    ProportionLoss,
+    ProportionLoss_CI,
+    VATLoss,
+    consistency_loss_function,
+)
+from utils.utils import calculate_prop, model_import, save_confusion_matrix
 
 
 class Run(object):
@@ -116,7 +119,7 @@ class Run(object):
         else:
             self.best_val_loss = self.val_loss
             self.cnt = 0
-            self.best_path = self.output_path + "/" + str(self.fold) + f"/Best_CP.pkl"
+            self.best_path = self.output_path + "/" + str(self.fold) + "/Best_CP.pkl"
             torch.save(self.model.state_dict(), self.best_path)
         return self.break_flag
 
