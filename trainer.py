@@ -39,7 +39,6 @@ class Run(object):
         self.patience = args.patience
         self.output_path = args.output_path
         self.test_acc = None
-        # Proportion loss with confidence interval
 
         # Consistency loss
         if args.consistency == "none":
