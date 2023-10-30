@@ -22,6 +22,8 @@ class Run(object):
         self.device = args.device
         self.model = model_import(args)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
+        self.loss_train = ConfidentialIntervalLoss()
+        self.loss_val = ProportionLoss()
         self.epochs = args.epochs
         # dataloader
         self.train_loader = load_data(args, stage="train")
@@ -38,7 +40,6 @@ class Run(object):
         self.output_path = args.output_path
         self.test_acc = None
         # Proportion loss with confidence interval
-        self.loss_train, self.loss_val = ConfidentialIntervalLoss(), ProportionLoss()
 
         # Consistency loss
         if args.consistency == "none":
