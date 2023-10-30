@@ -60,7 +60,12 @@ If you want to train network, please run following command.
 5 fold cross-validation is implemented and Test is automatically done in our code.
 ```
 $ python run.py
-```
+```  
+If you want to use all 8 dataset, please run following command.
+The training and test will be done in 8 dataset.
+```sh
+sh run_all_dataset.sh
+```  
 
 ## Arguments
 You can set up any parameters at `arguments.py`
