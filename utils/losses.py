@@ -25,7 +25,7 @@ class ProportionLoss(nn.Module):
         return loss
 
 
-class ProportionLoss_CI(nn.Module):
+class ConfidentialIntervalLoss(nn.Module):
     def __init__(self, eps=1e-8):
         super().__init__()
         self.eps = eps
@@ -177,11 +177,11 @@ class DynamicWeight(object):
 
 
 def consistency_loss_function(
-    args, consistency_criterion, model, img, train_loader, epoch
+    args, consistency_criterion, model, train_loader, img, epoch
 ):
     if args.consistency != "none":
         consistency_loss = consistency_criterion(model, img)
-        consistency_rampup = 0.4 * args.num_epochs * len(train_loader) / args.batch_size
+        consistency_rampup = 0.4 * epoch * len(train_loader) / args.batch_size
         alpha = get_rampup_weight(0.05, epoch, consistency_rampup)
         consistency_loss = alpha * consistency_loss
     else:
