@@ -39,37 +39,6 @@ def get_N_label_proportion(proportion, num_instances, num_classes):
     return N
 
 
-def create_bags_val(data, label, num_bags, num_instances, dataset):
-    # make poroportion
-    proportion = get_label_proportion(num_bags, args.num_classes)
-    proportion_N = get_N_label_proportion(proportion, num_instances, args.num_classes)
-
-    # make index
-    idx = np.arange(len(label))
-    idx_c = []
-    for c in range(args.num_classes):
-        idx_c.append(idx[label[idx] == c])
-
-    bags_idx = []
-    for n in range(len(proportion_N)):
-        bag_idx = []
-        for c in range(args.num_classes):
-            sample_c_index = idx_c[c][0 : int(proportion_N[n][c])]
-            idx_c[c] = idx_c[c][int(proportion_N[n][c]) :]
-            bag_idx.extend(sample_c_index)
-
-        np.random.shuffle(bag_idx)
-        bags_idx.append(bag_idx)
-
-    bags_idx = np.array(bags_idx)
-    # bags_index.shape => (num_bags, num_instances)
-    bags, labels = data[bags_idx], label[bags_idx]
-
-    lps = proportion_N / num_instances
-
-    return bags, labels, lps
-
-
 def create_bags(data, label, num_bags, num_instances, dataset):
     # make poroportion
     proportion = get_label_proportion(num_bags, args.num_classes)
@@ -157,24 +126,24 @@ class CreateData(object):
             make_folder(output_path)
 
             # train
-            bags, labels, original_lps = create_bags(
+            bags, labels, original_lps = self.create_bags(
+                dataset,
                 train_data,
                 train_label,
                 self.args.train_num_bags,
                 self.args.train_num_instances,
-                dataset,
             )
             np.save(f"{output_path}/train_bags", bags)
             np.save(f"{output_path}/train_labels", labels)
             np.save(f"{output_path}/train_lps", original_lps)
 
             # val
-            bags, labels, original_lps = create_bags(
+            bags, labels, original_lps = self.create_bags(
+                dataset,
                 val_data,
                 val_label,
                 self.args.val_num_bags,
                 self.args.val_num_instances,
-                dataset,
             )
             np.save(f"{output_path}/val_bags", bags)
             np.save(f"{output_path}/val_labels", labels)
@@ -193,6 +162,43 @@ class CreateData(object):
             f"data/{dataset}/test_label",
             test_label,
         )
+
+    def create_bags(self, dataset, data, label, num_bags, num_instances):
+        # make poroportion
+        proportion = get_label_proportion(num_bags, self.args.num_classes)
+        proportion_N = get_N_label_proportion(
+            proportion, num_instances, self.args.num_classes
+        )
+
+        # make index
+        idx = np.arange(len(label))
+        idx_c = []
+        if dataset == "cifar10" or dataset == "svhn":
+            for c in range(self.args.num_classes):
+                idx_c.append(idx[label[idx] == c])
+        else:
+            for c in range(self.args.num_classes):
+                idx_c.append(idx[(label[idx] == c).squeeze()])
+        for i in range(len(idx_c)):
+            random.shuffle(idx_c[i])
+
+        bags_idx = []
+        for n in range(len(proportion_N)):
+            bag_idx = []
+            for c in range(self.args.num_classes):
+                sample_c_index = idx_c[c][0 : int(proportion_N[n][c])]
+                idx_c[c] = idx_c[c][int(proportion_N[n][c]) :]
+                bag_idx.extend(sample_c_index)
+
+            np.random.shuffle(bag_idx)
+            bags_idx.append(bag_idx)
+
+        bags_idx = np.array(bags_idx)
+        bags, labels = data[bags_idx], label[bags_idx]
+
+        lps = proportion_N / num_instances
+
+        return bags, labels, lps
 
 
 if __name__ == "__main__":
