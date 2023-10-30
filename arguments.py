@@ -7,9 +7,9 @@ parser.add_argument(
     "--e", "--epochs", dest="epochs", default=1000, type=int, help="max epoch"
 )
 parser.add_argument(
-    "--t_fold",
-    "--t_fold",
-    dest="t_fold",
+    "--folds",
+    "--folds",
+    dest="folds",
     default=5,
     type=int,
     help="N-fold cross validation",

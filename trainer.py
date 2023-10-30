@@ -5,9 +5,9 @@ from tqdm import tqdm
 
 from utils.dataset import load_data
 from utils.losses import (
+    ConfidentialIntervalLoss,
     PiModelLoss,
     ProportionLoss,
-    ProportionLoss_CI,
     VATLoss,
     consistency_loss_function,
 )
@@ -18,8 +18,11 @@ class Run(object):
     """Class for training, validation and test."""
 
     def __init__(self, args):
+        self.args = args
+        self.device = args.device
         self.model = model_import(args)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
+        self.epochs = args.epochs
         # dataloader
         self.train_loader = load_data(args, stage="train")
         self.val_loader = load_data(args, stage="val")
@@ -31,10 +34,11 @@ class Run(object):
         self.break_flag = False
         self.best_path = None
         self.fold = args.fold
-        self.output_path = args.output_path
         self.patience = args.patience
+        self.output_path = args.output_path
+        self.test_acc = None
         # Proportion loss with confidence interval
-        self.loss_train, self.loss_val = ProportionLoss_CI(), ProportionLoss()
+        self.loss_train, self.loss_val = ConfidentialIntervalLoss(), ProportionLoss()
 
         # Consistency loss
         if args.consistency == "none":
@@ -46,22 +50,22 @@ class Run(object):
         else:
             raise NameError("Unknown consistency criterion")
 
-    def train(self, args, epoch):
+    def train(self, epoch: int):
         self.model.train()
         losses = []
         for batch in tqdm(self.train_loader, leave=False):
             # nb: the number of bags, bs: bag size, c: channel, w: width, h: height
             nb, bs, c, w, h = batch["img"].size()
-            img = batch["img"].reshape(-1, c, w, h).to(args.device)
-            lp_gt = batch["label_prop"].to(args.device)
+            img = batch["img"].reshape(-1, c, w, h).to(self.device)
+            lp_gt = batch["label_prop"].to(self.device)
 
             # Consistency loss
             consistency_loss = consistency_loss_function(
-                args,
+                self.args,
                 self.consistency_criterion,
                 self.model,
-                img,
                 self.train_loader,
+                img,
                 epoch,
             )
 
@@ -71,8 +75,8 @@ class Run(object):
             loss = self.loss_train(
                 lp_pred,
                 lp_gt,
-                batch["ci_min_value"].to(args.device),
-                batch["ci_max_value"].to(args.device),
+                batch["ci_min_value"].to(self.device),
+                batch["ci_max_value"].to(self.device),
             )
             loss += consistency_loss
             loss.backward()
@@ -81,9 +85,9 @@ class Run(object):
             losses.append(loss.item())
 
         train_loss = np.array(losses).mean()
-        print("[Epoch: %d/%d] train loss: %.4f" % (epoch + 1, args.epochs, train_loss))
+        print("[Epoch: %d/%d] train loss: %.4f" % (epoch + 1, self.epochs, train_loss))
 
-    def val(self, args, epoch: int):
+    def val(self, epoch: int):
         self.model.eval()
         losses = []
         with torch.no_grad():
@@ -91,7 +95,7 @@ class Run(object):
                 # nb: the number of bags, bs: bag size, c: channel, w: width, h: height
                 (nb, bs, c, w, h) = batch["img"].size()
                 img = batch["img"].reshape(-1, c, w, h)
-                img, lp_gt = img.to(args.device), batch["label_prop"].to(args.device)
+                img, lp_gt = img.to(self.device), batch["label_prop"].to(self.device)
 
                 output = self.model(img)
                 lp_pred = calculate_prop(output, nb, bs)
@@ -100,13 +104,12 @@ class Run(object):
                 losses.append(loss.item())
 
         self.val_loss = np.array(losses).mean()
-        print("[Epoch: %d/%d] val loss: %.4f" % (epoch + 1, args.epochs, self.val_loss))
+        print("[Epoch: %d/%d] val loss: %.4f" % (epoch + 1, self.epochs, self.val_loss))
 
-    def early_stopping(self, args, epoch: int):
+    def early_stopping(self):
         """Early Stopping
         Args:
             args (argparse): contain parameters
-            epoch (int): current epoch
 
         Returns:
             break_flag (True or False): when break_flag is "True", stop training. when it is "False", continue training.
@@ -122,14 +125,14 @@ class Run(object):
             torch.save(self.model.state_dict(), self.best_path)
         return self.break_flag
 
-    def test(self, args):
-        self.model.load_state_dict(torch.load(self.best_path, map_location=args.device))
+    def test(self):
+        self.model.load_state_dict(torch.load(self.best_path, map_location=self.device))
         self.model.eval()
         gt, pred = [], []
 
         with torch.no_grad():
             for batch in tqdm(self.test_loader, leave=False):
-                img = batch["img"].to(args.device)
+                img = batch["img"].to(self.device)
                 assert len(img.shape) in [4, 5], "img should be 4 or 5 dims"
 
                 output = self.model(img)
@@ -139,6 +142,7 @@ class Run(object):
 
         gt, pred = np.array(gt), np.array(pred)
         test_acc = (gt == pred).mean()
+        self.test_acc = test_acc
 
         # calculate confusion matrix and save confusion matrix
         test_cm = confusion_matrix(y_true=gt, y_pred=pred, normalize="true")

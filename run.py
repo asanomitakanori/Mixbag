@@ -14,14 +14,14 @@ def main(args):
 
     # Training & Validation
     for epoch in range(args.epochs):
-        run.train(args, epoch)
-        run.val(args, epoch)
+        run.train(epoch)
+        run.val(epoch)
 
-        break_flag = run.early_stopping(args, epoch)
+        break_flag = run.early_stopping()
         if break_flag:
             break
     # Test
-    run.test(args, epoch)
+    run.test()
     return run.test_acc
 
 
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     test_acc = []
 
     # 5 fold cross validation
-    for fold in range(args.t_fold):
+    for fold in range(args.folds):
         args.fold = fold
         path = args.output_path + "/" + str(args.fold)
         os.makedirs(path) if os.path.exists(path) is False else None
