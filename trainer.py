@@ -58,6 +58,7 @@ class Run(object):
             nb, bs, c, w, h = batch["img"].size()
             img = batch["img"].reshape(-1, c, w, h).to(self.device)
             lp_gt = batch["label_prop"].to(self.device)
+            ci_min_value, ci_max_value = batch["ci_min_value"], batch["ci_max_value"]
 
             # Consistency loss
             consistency_loss = consistency_loss_function(
@@ -75,8 +76,8 @@ class Run(object):
             loss = self.loss_train(
                 lp_pred,
                 lp_gt,
-                batch["ci_min_value"].to(self.device),
-                batch["ci_max_value"].to(self.device),
+                ci_min_value.to(self.device),
+                ci_max_value.to(self.device),
             )
             loss += consistency_loss
             loss.backward()

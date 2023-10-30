@@ -6,9 +6,7 @@ train_for_research.py
 docker
 may.py
 medmnist/pathmnist.npz
-data
 csv2.py
 log.csv
 run_parallel.py
 trainer_parallel.py
-data

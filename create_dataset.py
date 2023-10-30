@@ -39,12 +39,12 @@ def get_N_label_proportion(proportion, num_instances, num_classes):
     return N
 
 
-def create_bags_val(data, label, num_posi_bags, num_nega_bags, num_instances, args):
+def create_bags_val(data, label, num_bags, num_instances, args):
     # make poroportion
-    proportion = get_label_proportion(num_posi_bags, args.num_classes)
+    proportion = get_label_proportion(num_bags, args.num_classes)
     proportion_N = get_N_label_proportion(proportion, num_instances, args.num_classes)
 
-    proportion_N_nega = np.zeros((num_nega_bags, args.num_classes))
+    proportion_N_nega = np.zeros((0, args.num_classes))
     proportion_N_nega[:, 0] = num_instances
 
     proportion_N = np.concatenate([proportion_N, proportion_N_nega], axis=0)
@@ -70,7 +70,7 @@ def create_bags_val(data, label, num_posi_bags, num_nega_bags, num_instances, ar
     # bags_index.shape => (num_bags, num_instances)
     bags, labels = data[bags_idx], label[bags_idx]
 
-    original_lps = proportion_N / args.num_instances_val
+    original_lps = proportion_N / num_instances
 
     partial_lps = original_lps.copy()
     posi_nega = original_lps[:, 0] != 1
@@ -80,12 +80,12 @@ def create_bags_val(data, label, num_posi_bags, num_nega_bags, num_instances, ar
     return bags, labels, original_lps, partial_lps
 
 
-def create_bags(data, label, num_posi_bags, num_nega_bags, num_instances, args):
+def create_bags(data, label, num_bags, num_instances, args):
     # make poroportion
-    proportion = get_label_proportion(num_posi_bags, args.num_classes)
+    proportion = get_label_proportion(num_bags, args.num_classes)
     proportion_N = get_N_label_proportion(proportion, num_instances, args.num_classes)
 
-    proportion_N_nega = np.zeros((num_nega_bags, args.num_classes))
+    proportion_N_nega = np.zeros((0, args.num_classes))
     proportion_N_nega[:, 0] = num_instances
 
     proportion_N = np.concatenate([proportion_N, proportion_N_nega], axis=0)
@@ -116,7 +116,7 @@ def create_bags(data, label, num_posi_bags, num_nega_bags, num_instances, args):
     bags_idx = np.array(bags_idx)
     bags, labels = data[bags_idx], label[bags_idx]
 
-    original_lps = proportion_N / args.num_instances
+    original_lps = proportion_N / num_instances
 
     partial_lps = original_lps.copy()
     posi_nega = original_lps[:, 0] != 1
@@ -151,9 +151,8 @@ def cifar10svhn(args):
         bags, labels, original_lps, _ = create_bags(
             train_data,
             train_label,
-            args.train_num_posi_bags,
-            args.train_num_nega_bags,
-            args.num_instances,
+            args.train_num_bags,
+            args.train_num_instances,
             args,
         )
         np.save("%s/train_bags" % (output_path), bags)
@@ -163,9 +162,8 @@ def cifar10svhn(args):
         bags, labels, original_lps, _ = create_bags_val(
             val_data,
             val_label,
-            args.val_num_posi_bags,
-            args.val_num_nega_bags,
-            args.num_instances_val,
+            args.val_num_bags,
+            args.val_num_instances,
             args,
         )
         np.save("%s/val_bags" % (output_path), bags)
@@ -190,7 +188,7 @@ def cifar10svhn(args):
 
 
 def medmnist(args):
-    dataset_list = glob("medmnist/*")
+    dataset_list = glob("medmnist/*.npz")
     for data in dataset_list:
         a = np.load(data)
         print(a)
@@ -215,9 +213,8 @@ def medmnist(args):
             bags, labels, original_lps, _ = create_bags(
                 train_data,
                 train_label,
-                args.train_num_posi_bags,
-                args.train_num_nega_bags,
-                args.num_instances,
+                args.train_num_bags,
+                args.train_num_instances,
                 args,
             )
             np.save("%s/train_bags" % (output_path), bags)
@@ -228,9 +225,8 @@ def medmnist(args):
             bags, labels, original_lps, _ = create_bags(
                 val_data,
                 val_label,
-                args.val_num_posi_bags,
-                args.val_num_nega_bags,
-                args.num_instances,
+                args.val_num_bags,
+                args.val_num_instances,
                 args,
             )
             np.save("%s/val_bags" % (output_path), bags)
@@ -253,20 +249,18 @@ def medmnist(args):
 
 if __name__ == "__main__":
     bags = 512
-    ins = 10
+    instance = 10
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", default=42, type=int)
 
     parser.add_argument("--dataset", default="none", type=str)
     parser.add_argument("--num_classes", default=10, type=int)
-    parser.add_argument("--num_instances", default=ins, type=int)
-    parser.add_argument("--num_instances_val", default=64, type=int)
 
-    parser.add_argument("--train_num_posi_bags", default=bags, type=int)
-    parser.add_argument("--train_num_nega_bags", default=0, type=int)
-    parser.add_argument("--val_num_posi_bags", default=10, type=int)
-    parser.add_argument("--val_num_nega_bags", default=0, type=int)
+    parser.add_argument("--train_num_bags", default=bags, type=int)
+    parser.add_argument("--train_num_instances", default=instance, type=int)
+    parser.add_argument("--val_num_bags", default=10, type=int)
+    parser.add_argument("--val_num_instances", default=64, type=int)
 
     parser.add_argument("--aug_bags_num", default=1, type=int)
     args = parser.parse_args()
