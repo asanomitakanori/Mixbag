@@ -61,8 +61,9 @@ If you want to train network, please run following command.
 ```
 $ python run.py
 ```  
-If you want to use all 8 dataset, please run following command.
-The training and test will be done in 8 dataset.
+If you want to train network in all 8 dataset, please run following command.  
+The training and test will be automatically done in 8 dataset.  
+(However, This process takes a lot of time, so you should be carefull.)  
 ```sh
 sh run_all_dataset.sh
 ```  
