@@ -39,42 +39,6 @@ def get_N_label_proportion(proportion, num_instances, num_classes):
     return N
 
 
-def create_bags(data, label, num_bags, num_instances, dataset):
-    # make poroportion
-    proportion = get_label_proportion(num_bags, args.num_classes)
-    proportion_N = get_N_label_proportion(proportion, num_instances, args.num_classes)
-
-    # make index
-    idx = np.arange(len(label))
-    idx_c = []
-    if dataset == "cifar10" or dataset == "svhn":
-        for c in range(args.num_classes):
-            idx_c.append(idx[label[idx] == c])
-    else:
-        for c in range(args.num_classes):
-            idx_c.append(idx[(label[idx] == c).squeeze()])
-    for i in range(len(idx_c)):
-        random.shuffle(idx_c[i])
-
-    bags_idx = []
-    for n in range(len(proportion_N)):
-        bag_idx = []
-        for c in range(args.num_classes):
-            sample_c_index = idx_c[c][0 : int(proportion_N[n][c])]
-            idx_c[c] = idx_c[c][int(proportion_N[n][c]) :]
-            bag_idx.extend(sample_c_index)
-
-        np.random.shuffle(bag_idx)
-        bags_idx.append(bag_idx)
-
-    bags_idx = np.array(bags_idx)
-    bags, labels = data[bags_idx], label[bags_idx]
-
-    lps = proportion_N / num_instances
-
-    return bags, labels, lps
-
-
 class CreateData(object):
     def __init__(self, args):
         self.args = args
