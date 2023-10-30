@@ -212,7 +212,7 @@ def medmnist(args):
             make_folder(output_path)
 
             # train
-            bags, labels, original_lps, partial_lps = create_bags(
+            bags, labels, original_lps, _ = create_bags(
                 train_data,
                 train_label,
                 args.train_num_posi_bags,
@@ -225,7 +225,7 @@ def medmnist(args):
             np.save("%s/train_lps" % (output_path), original_lps)
 
             # val
-            bags, labels, original_lps, partial_lps = create_bags(
+            bags, labels, original_lps, _ = create_bags(
                 val_data,
                 val_label,
                 args.val_num_posi_bags,
