@@ -55,7 +55,7 @@ def ci_loss_interval(
     cover1 = t * np.sqrt(proportion1 * (1 - proportion1) / sampling_num1)
     cover2 = t * np.sqrt(proportion2 * (1 - proportion2) / sampling_num2)
     expected_plp = a * proportion1 + b * proportion2
-    confidence_area = t * cover1 + b * cover2
+    confidence_area = a * cover1 + b * cover2
     ci_min_value = expected_plp - confidence_area
     ci_max_value = expected_plp + confidence_area
     return ci_min_value, ci_max_value, expected_plp
